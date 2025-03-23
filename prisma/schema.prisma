@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户实体
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  account     String   @unique
+  password    String
+  avatar      String?
+  email       String   @unique
+  createdTime DateTime @default(now())
+  updatedTime DateTime @updatedAt
+
+  // 关联
+  roles UserRole[]
+}
+
+// 角色实体
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  createdTime DateTime @default(now())
+  updatedTime DateTime @updatedAt
+
+  // 关联
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+// 用户-角色关联表
+model UserRole {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  roleId      String   @db.Uuid
+  createdTime DateTime @default(now())
+  updatedTime DateTime @updatedAt
+
+  // 关联
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+// 权限实体
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  type        String
+  name        String   @unique
+  description String?
+  createdTime DateTime @default(now())
+  updatedTime DateTime @updatedAt
+
+  // 关联
+  roles RolePermission[]
+}
+
+// 角色-权限关联表
+model RolePermission {
+  id           String   @id @default(uuid()) @db.Uuid
+  roleId       String   @db.Uuid
+  permissionId String   @db.Uuid
+  createdTime  DateTime @default(now())
+  updatedTime  DateTime @updatedAt
+
+  // 关联
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+// 站点实体
+model Site {
+  id          String   @id @default(uuid()) @db.Uuid
+  url         String
+  logo        String?
+  name        String
+  description String?
+  createdTime DateTime @default(now())
+  updatedTime DateTime @updatedAt
+
+  // 关联
+  tags       SiteTag[]
+  categories CategorySite[]
+}
+
+// 分类实体 (树结构)
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  parentId    String?  @db.Uuid
+  createdTime DateTime @default(now())
+  updatedTime DateTime @updatedAt
+
+  // 自引用关系 (树结构)
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+
+  // 关联
+  sites CategorySite[]
+}
+
+// 分类-站点关联表
+model CategorySite {
+  id          String   @id @default(uuid()) @db.Uuid
+  categoryId  String   @db.Uuid
+  siteId      String   @db.Uuid
+  createdTime DateTime @default(now())
+  updatedTime DateTime @updatedAt
+
+  // 关联
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  site     Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, siteId])
+}
+
+// 标签实体
+model Tag {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  description String?
+  createdTime DateTime @default(now())
+  updatedTime DateTime @updatedAt
+
+  // 关联
+  sites SiteTag[]
+}
+
+// 站点-标签关联表
+model SiteTag {
+  id          String   @id @default(uuid()) @db.Uuid
+  siteId      String   @db.Uuid
+  tagId       String   @db.Uuid
+  createdTime DateTime @default(now())
+  updatedTime DateTime @updatedAt
+
+  // 关联
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, tagId])
+}
