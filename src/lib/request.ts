@@ -30,6 +30,7 @@ export class RequestError extends Error {
 export class Request {
   private baseUrl: string
   private defaultConfig: RequestConfig
+  private commonParams: Record<string, any> = {}
 
   /**
    * 构造函数
@@ -57,6 +58,25 @@ export class Request {
       ...this.defaultConfig.headers,
       ...headers,
     }
+  }
+
+  /**
+   * 设置公共参数
+   * @param params 公共参数对象
+   */
+  setCommonParams(params: Record<string, any>): void {
+    this.commonParams = {
+      ...this.commonParams,
+      ...params,
+    }
+  }
+
+  /**
+   * 获取当前公共参数
+   * @returns 公共参数对象
+   */
+  getCommonParams(): Record<string, any> {
+    return { ...this.commonParams }
   }
 
   /**
@@ -100,16 +120,32 @@ export class Request {
       ...config,
     }
 
+    // 合并公共参数和请求参数
+    const mergedParams = {
+      ...this.commonParams,
+      ...params,
+    }
+
     // 构建完整URL
-    const fullUrl = this.buildUrl(url, params)
+    const fullUrl = this.buildUrl(url, mergedParams)
 
     // 处理请求体
-    if (data) {
+    if (
+      !fetchConfig.body &&
+      fetchConfig.method &&
+      ['POST', 'PUT', 'PATCH'].includes(fetchConfig.method)
+    ) {
+      // 对于POST、PUT、PATCH请求，合并公共参数到请求体
+      const mergedData = data ? { ...data } : {}
+
+      // 只有当请求体是对象类型时才合并公共参数
       if (
-        !fetchConfig.body &&
-        fetchConfig.method &&
-        ['POST', 'PUT', 'PATCH'].includes(fetchConfig.method)
+        typeof mergedData === 'object' &&
+        mergedData !== null &&
+        !Array.isArray(mergedData)
       ) {
+        fetchConfig.body = JSON.stringify(mergedData)
+      } else {
         fetchConfig.body = JSON.stringify(data)
       }
     }

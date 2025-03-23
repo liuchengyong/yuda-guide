@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { userService } from '@/services'
 import { userUpdateSchema, validateData } from '@/lib/validations'
 import { ApiUtils } from '@/lib/api'
+import {
+  IdParams,
+  UpdateUserRequest,
+  UserResponse,
+} from '@/types/api-interfaces'
 
 // 获取单个用户
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: IdParams },
 ) {
   try {
     const id = params.id
@@ -16,7 +21,7 @@ export async function GET(
       return ApiUtils.notFound('用户不存在')
     }
 
-    return ApiUtils.success(user)
+    return ApiUtils.success<UserResponse>(user, '获取用户成功')
   } catch (error) {
     console.error('Error fetching user:', error)
     return ApiUtils.serverError('获取用户失败')
@@ -26,14 +31,14 @@ export async function GET(
 // 更新用户
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: IdParams },
 ) {
   try {
     const id = params.id
     const body = await request.json()
 
     // 使用Zod验证请求数据
-    const validation = validateData(userUpdateSchema, body)
+    const validation = validateData<UpdateUserRequest>(userUpdateSchema, body)
     if (!validation.success) {
       return ApiUtils.badRequest(validation.error)
     }

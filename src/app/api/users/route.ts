@@ -2,12 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { userService } from '@/services'
 import { userSchema, validateData } from '@/lib/validations'
 import { ApiUtils } from '@/lib/api'
+import {
+  CreateUserRequest,
+  UserListResponse,
+  UserResponse,
+} from '@/types/api-interfaces'
 
 // 获取所有用户
 export async function GET(request: NextRequest) {
   try {
     const users = await userService.findAll()
-    return ApiUtils.success(users)
+    return ApiUtils.success<UserListResponse>(users, '获取用户列表成功')
   } catch (error) {
     console.error('Error fetching users:', error)
     return ApiUtils.serverError('获取用户列表失败')
@@ -20,7 +25,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // 使用Zod验证请求数据
-    const validation = validateData(userSchema, body)
+    const validation = validateData<CreateUserRequest>(userSchema, body)
     if (!validation.success) {
       return ApiUtils.badRequest(validation.error)
     }
@@ -36,7 +41,7 @@ export async function POST(request: NextRequest) {
       roles,
     })
 
-    return ApiUtils.success(user, '用户创建成功')
+    return ApiUtils.success<UserResponse>(user, '用户创建成功')
   } catch (error) {
     console.error('Error creating user:', error)
     return ApiUtils.serverError('创建用户失败')
