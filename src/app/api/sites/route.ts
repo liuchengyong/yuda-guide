@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { siteSchema, validateData } from '@/lib/validations'
 
 // 获取所有站点
 export async function GET(request: NextRequest) {
@@ -59,15 +60,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { url, logo, name, description, tags, categories } = body
 
-    // 基本验证
-    if (!url || !name) {
-      return NextResponse.json(
-        { error: 'Site URL and name are required' },
-        { status: 400 },
-      )
+    // 使用Zod验证请求数据
+    const validation = validateData(siteSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
     }
+
+    const { url, logo, name, description, tags, categories } = validation.data
 
     // 创建站点
     const site = await prisma.site.create({

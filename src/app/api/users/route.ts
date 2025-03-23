@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { userService } from '@/services'
+import { userSchema, validateData } from '@/lib/validations'
+import { ApiUtils } from '@/lib/api'
 
 // 获取所有用户
 export async function GET(request: NextRequest) {
   try {
     const users = await userService.findAll()
-    return NextResponse.json(users)
+    return ApiUtils.success(users)
   } catch (error) {
     console.error('Error fetching users:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch users' },
-      { status: 500 },
-    )
+    return ApiUtils.serverError('获取用户列表失败')
   }
 }
 
@@ -19,15 +18,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { account, password, email, avatar, roles } = body
 
-    // 基本验证
-    if (!account || !password || !email) {
-      return NextResponse.json(
-        { error: 'Account, password and email are required' },
-        { status: 400 },
-      )
+    // 使用Zod验证请求数据
+    const validation = validateData(userSchema, body)
+    if (!validation.success) {
+      return ApiUtils.badRequest(validation.error)
     }
+
+    const { account, password, email, avatar, roles } = validation.data
 
     // 创建用户
     const user = await userService.createUser({
@@ -38,12 +36,9 @@ export async function POST(request: NextRequest) {
       roles,
     })
 
-    return NextResponse.json(user, { status: 201 })
+    return ApiUtils.success(user, '用户创建成功')
   } catch (error) {
     console.error('Error creating user:', error)
-    return NextResponse.json(
-      { error: 'Failed to create user' },
-      { status: 500 },
-    )
+    return ApiUtils.serverError('创建用户失败')
   }
 }

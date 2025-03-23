@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { tagSchema, validateData } from '@/lib/validations'
 
 // 获取所有标签
 export async function GET(request: NextRequest) {
@@ -42,15 +43,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, description, sites } = body
 
-    // 基本验证
-    if (!name) {
-      return NextResponse.json(
-        { error: 'Tag name is required' },
-        { status: 400 },
-      )
+    // 使用Zod验证请求数据
+    const validation = validateData(tagSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
     }
+
+    const { name, description, sites } = validation.data
 
     // 检查标签名是否已存在
     const existingTag = await prisma.tag.findUnique({

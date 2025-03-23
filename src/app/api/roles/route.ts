@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { roleSchema, validateData } from '@/lib/validations'
 
 // 获取所有角色
 export async function GET(request: NextRequest) {
@@ -32,13 +33,10 @@ export async function GET(request: NextRequest) {
       permissions: role.permissions.map((rp) => rp.permission),
     }))
 
-    return NextResponse.json(formattedRoles)
+    return ApiUtils.success(formattedRoles)
   } catch (error) {
     console.error('Error fetching roles:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch roles' },
-      { status: 500 },
-    )
+    return ApiUtils.serverError('Failed to fetch roles')
   }
 }
 
@@ -46,15 +44,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, description, permissions } = body
 
-    // 基本验证
-    if (!name) {
-      return NextResponse.json(
-        { error: 'Role name is required' },
-        { status: 400 },
-      )
+    // 使用Zod验证请求数据
+    const validation = validateData(roleSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
     }
+
+    const { name, description, permissions } = validation.data
 
     // 检查角色名是否已存在
     const existingRole = await prisma.role.findUnique({
@@ -90,12 +87,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(role, { status: 201 })
+    return ApiUtils.success(role, 201)
   } catch (error) {
     console.error('Error creating role:', error)
-    return NextResponse.json(
-      { error: 'Failed to create role' },
-      { status: 500 },
-    )
+    return ApiUtils.serverError('Failed to create role')
   }
 }

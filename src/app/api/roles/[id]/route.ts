@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { roleUpdateSchema, validateData } from '@/lib/validations'
 
 // 获取单个角色
 export async function GET(
@@ -33,7 +34,7 @@ export async function GET(
     })
 
     if (!role) {
-      return NextResponse.json({ error: 'Role not found' }, { status: 404 })
+      return ApiUtils.notFound('Role not found')
     }
 
     // 格式化返回数据
@@ -42,10 +43,10 @@ export async function GET(
       permissions: role.permissions.map((rp) => rp.permission),
     }
 
-    return NextResponse.json(formattedRole)
+    return ApiUtils.success(formattedRole)
   } catch (error) {
     console.error('Error fetching role:', error)
-    return NextResponse.json({ error: 'Failed to fetch role' }, { status: 500 })
+    return ApiUtils.serverError('Failed to fetch role')
   }
 }
 
@@ -57,7 +58,14 @@ export async function PUT(
   try {
     const id = params.id
     const body = await request.json()
-    const { name, description, permissions } = body
+
+    // 使用Zod验证请求数据
+    const validation = validateData(roleUpdateSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+
+    const { name, description, permissions } = validation.data
 
     // 检查角色是否存在
     const existingRole = await prisma.role.findUnique({
@@ -65,7 +73,7 @@ export async function PUT(
     })
 
     if (!existingRole) {
-      return NextResponse.json({ error: 'Role not found' }, { status: 404 })
+      return ApiUtils.notFound('角色不存在')
     }
 
     // 如果更新名称，检查是否与其他角色冲突
@@ -114,13 +122,10 @@ export async function PUT(
       }
     }
 
-    return NextResponse.json(updatedRole)
+    return ApiUtils.success(updatedRole)
   } catch (error) {
     console.error('Error updating role:', error)
-    return NextResponse.json(
-      { error: 'Failed to update role' },
-      { status: 500 },
-    )
+    return ApiUtils.serverError('Failed to update role')
   }
 }
 
@@ -138,7 +143,7 @@ export async function DELETE(
     })
 
     if (!existingRole) {
-      return NextResponse.json({ error: 'Role not found' }, { status: 404 })
+      return ApiUtils.notFound('角色不存在')
     }
 
     // 删除角色 (关联的RolePermission和UserRole记录会通过级联删除自动删除)
@@ -146,15 +151,9 @@ export async function DELETE(
       where: { id },
     })
 
-    return NextResponse.json(
-      { message: 'Role deleted successfully' },
-      { status: 200 },
-    )
+    return ApiUtils.success({ message: 'Role deleted successfully' })
   } catch (error) {
     console.error('Error deleting role:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete role' },
-      { status: 500 },
-    )
+    return ApiUtils.serverError('Failed to delete role')
   }
 }

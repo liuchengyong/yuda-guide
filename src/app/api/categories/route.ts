@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { categorySchema, validateData } from '@/lib/validations'
 
 // 获取所有分类
 export async function GET(request: NextRequest) {
@@ -59,15 +60,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, description, parentId, sites } = body
 
-    // 基本验证
-    if (!name) {
-      return NextResponse.json(
-        { error: 'Category name is required' },
-        { status: 400 },
-      )
+    // 使用Zod验证请求数据
+    const validation = validateData(categorySchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
     }
+
+    const { name, description, parentId, sites } = validation.data
 
     // 如果提供了parentId，检查父分类是否存在
     if (parentId) {

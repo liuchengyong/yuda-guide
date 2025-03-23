@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { siteUpdateSchema, validateData } from '@/lib/validations'
 
 // 获取单个站点
 export async function GET(
@@ -70,7 +71,14 @@ export async function PUT(
   try {
     const id = params.id
     const body = await request.json()
-    const { url, logo, name, description, tags, categories } = body
+
+    // 使用Zod验证请求数据
+    const validation = validateData(siteUpdateSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+
+    const { url, logo, name, description, tags, categories } = validation.data
 
     // 检查站点是否存在
     const existingSite = await prisma.site.findUnique({

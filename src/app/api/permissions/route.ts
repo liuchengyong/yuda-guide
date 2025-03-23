@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { permissionSchema, validateData } from '@/lib/validations'
 
 // 获取所有权限
 export async function GET(request: NextRequest) {
@@ -29,15 +30,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { type, name, description } = body
 
-    // 基本验证
-    if (!type || !name) {
-      return NextResponse.json(
-        { error: 'Permission type and name are required' },
-        { status: 400 },
-      )
+    // 使用Zod验证请求数据
+    const validation = validateData(permissionSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
     }
+
+    const { type, name, description } = validation.data
 
     // 检查权限名是否已存在
     const existingPermission = await prisma.permission.findUnique({

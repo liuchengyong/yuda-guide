@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { permissionUpdateSchema, validateData } from '@/lib/validations'
 
 // 获取单个权限
 export async function GET(
@@ -46,7 +47,14 @@ export async function PUT(
   try {
     const id = params.id
     const body = await request.json()
-    const { type, name, description } = body
+
+    // 使用Zod验证请求数据
+    const validation = validateData(permissionUpdateSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+
+    const { type, name, description } = validation.data
 
     // 检查权限是否存在
     const existingPermission = await prisma.permission.findUnique({

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { categoryUpdateSchema, validateData } from '@/lib/validations'
 
 // 获取单个分类
 export async function GET(
@@ -74,7 +75,14 @@ export async function PUT(
   try {
     const id = params.id
     const body = await request.json()
-    const { name, description, parentId, sites } = body
+
+    // 使用Zod验证请求数据
+    const validation = validateData(categoryUpdateSchema, body)
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 })
+    }
+
+    const { name, description, parentId, sites } = validation.data
 
     // 检查分类是否存在
     const existingCategory = await prisma.category.findUnique({
