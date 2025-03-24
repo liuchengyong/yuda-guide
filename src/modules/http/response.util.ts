@@ -1,11 +1,10 @@
-import { message } from 'antd'
-import { ResponseCode, ResponseStatus } from '@/types'
 import { NextResponse } from 'next/server'
+import { ResponseCode, ResponseStatus } from './http.model'
 
 /**
  * API工具类，用于处理API请求和响应
  */
-export class ResponseUtils {
+export class ResponseUtil {
   /**
    * 创建成功响应
    * @param data 响应数据

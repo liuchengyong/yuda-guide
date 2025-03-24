@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { CreatePermissionDto, Permission } from '@/types/entitys/permission'
-import { ResponseUtils } from '@/lib/responseUtils'
+import { ResponseUtils } from '@/modules/http/response.util'
 import { ResponseCode } from '@/types'
 
 /**
@@ -12,7 +11,6 @@ export class PermissionService {
    *
    */
   static async createPermission(data: CreatePermissionDto) {
-    // 检查权限名是否已存在
     const existingPermission = await prisma.permission.findFirst({
       where: {
         OR: [

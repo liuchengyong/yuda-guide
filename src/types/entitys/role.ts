@@ -1,5 +1,5 @@
-import { BaseEntity } from './base'
-import { Permission } from './permission'
+import { BaseEntity } from '../base.entity'
+import { Permission } from '../../modules/permission/permission.model'
 import { User, UserRole } from '../user'
 
 // 角色实体

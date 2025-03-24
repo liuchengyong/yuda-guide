@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server'
+import { validateSchema } from '@/lib/validations'
+import { PermissionService } from '@/modules/permission/permission.service'
 import {
   CreatePermissionDto,
   CreatePermissionDtoSchema,
-} from '@/types/entitys/permission'
-import { validateSchema } from '@/lib/validations'
-import { ResponseUtils } from '@/lib/responseUtils'
-import { PermissionService } from '@/services/permission.service'
+} from '@/modules/permission/permission.model'
+import { ResponseUtil } from '@/modules/http/response.util'
 
 // 获取所有权限
 export async function GET(request: NextRequest) {}
@@ -15,15 +15,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CreatePermissionDto
     const validData = validateSchema(CreatePermissionDtoSchema, body)
-    const a: any = [1, 2][10]
-    const c = a.b
     if (validData.success) {
       return PermissionService.createPermission(body)
     } else {
-      return ResponseUtils.badRequest()
+      return ResponseUtil.badRequest()
     }
   } catch (error: any) {
     console.log(error)
-    return ResponseUtils.badRequest(error.message)
+    return ResponseUtil.badRequest(error.message)
   }
 }

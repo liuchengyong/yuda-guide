@@ -1,7 +1,7 @@
 import { Button } from 'antd'
-import { BaseEntity } from './base'
-import { Role, RolePermission } from './role'
 import { z } from 'zod'
+import { BaseEntity } from '@/types/base.entity'
+import { RolePermission } from '@/types/entitys/role'
 
 export enum PermissionType {
   Module = 'module', // 模块
@@ -30,6 +30,10 @@ export type CreatePermissionDto = Pick<
   Permission,
   'type' | 'name' | 'code' | 'description'
 >
+
+export type CreatePermissionVo = {
+  id: string
+}
 
 export const CreatePermissionDtoSchema = PermissionSchema.pick({
   type: true,
