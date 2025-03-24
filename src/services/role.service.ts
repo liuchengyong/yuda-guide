@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { Role } from '@/types/role'
+import { Role } from '@/types/entitys/role'
 import { BaseService } from './base.service'
 
 /**

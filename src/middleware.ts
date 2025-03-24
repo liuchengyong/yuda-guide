@@ -5,7 +5,7 @@ import { getToken } from 'next-auth/jwt'
 const PROTECTED_API_PATHS = [
   '/api/users',
   '/api/roles',
-  '/api/permissions',
+  // '/api/permissions',
   '/api/sites',
   '/api/tags',
   '/api/categories',
@@ -98,7 +98,6 @@ export async function middleware(request: NextRequest) {
   if (basePath) {
     requiredPermission = PERMISSION_MAP[basePath]?.[method]
   }
-
   // 如果找不到所需权限，默认放行（可以根据需求调整为拒绝）
   if (!requiredPermission) {
     return NextResponse.next()

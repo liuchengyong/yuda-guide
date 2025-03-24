@@ -1,4 +1,4 @@
-import { ApiCode, ApiResponse } from '@/types/api'
+import { ResponseData, ResponseStatus } from '@/types'
 
 /**
  * 请求配置接口
@@ -113,7 +113,10 @@ export class Request {
    * @param config 请求配置
    * @returns 响应数据
    */
-  async request<T = any>(url: string, config: RequestConfig = {}): Promise<T> {
+  async request<T = any>(
+    url: string,
+    config: RequestConfig = {},
+  ): Promise<ResponseData<T>> {
     // 合并配置
     const { params, data, timeout, ...fetchConfig } = {
       ...this.defaultConfig,
@@ -168,10 +171,10 @@ export class Request {
       if (timeoutId) clearTimeout(timeoutId)
 
       // 解析响应JSON
-      const responseData = (await response.json()) as ApiResponse<T>
+      const responseData = (await response.json()) as ResponseData<T>
 
       // 检查API响应状态
-      if (responseData.code !== ApiCode.SUCCESS) {
+      if (responseData.code !== ResponseStatus.SUCCESS) {
         throw new RequestError(
           responseData.message || '请求失败',
           responseData.code,
@@ -179,17 +182,17 @@ export class Request {
         )
       }
 
-      return responseData.data
+      return responseData
     } catch (error) {
       // 处理请求错误
       if (error instanceof RequestError) {
         throw error
       } else if (error instanceof DOMException && error.name === 'AbortError') {
-        throw new RequestError('请求超时', ApiCode.INTERNAL_ERROR)
+        throw new RequestError('请求超时', ResponseStatus.INTERNAL_ERROR)
       } else {
         throw new RequestError(
           error instanceof Error ? error.message : '网络请求失败',
-          ApiCode.INTERNAL_ERROR,
+          ResponseStatus.INTERNAL_ERROR,
         )
       }
     }
@@ -201,7 +204,10 @@ export class Request {
    * @param config 请求配置
    * @returns 响应数据
    */
-  get<T = any>(url: string, config: RequestConfig = {}): Promise<T> {
+  get<T = any>(
+    url: string,
+    config: RequestConfig = {},
+  ): Promise<ResponseData<T>> {
     return this.request<T>(url, { ...config, method: 'GET' })
   }
 
@@ -216,7 +222,7 @@ export class Request {
     url: string,
     data?: any,
     config: RequestConfig = {},
-  ): Promise<T> {
+  ): Promise<ResponseData<T>> {
     return this.request<T>(url, { ...config, method: 'POST', data })
   }
 
@@ -231,7 +237,7 @@ export class Request {
     url: string,
     data?: any,
     config: RequestConfig = {},
-  ): Promise<T> {
+  ): Promise<ResponseData<T>> {
     return this.request<T>(url, { ...config, method: 'PUT', data })
   }
 
@@ -241,7 +247,10 @@ export class Request {
    * @param config 请求配置
    * @returns 响应数据
    */
-  delete<T = any>(url: string, config: RequestConfig = {}): Promise<T> {
+  delete<T = any>(
+    url: string,
+    config: RequestConfig = {},
+  ): Promise<ResponseData<T>> {
     return this.request<T>(url, { ...config, method: 'DELETE' })
   }
 
@@ -256,12 +265,12 @@ export class Request {
     url: string,
     data?: any,
     config: RequestConfig = {},
-  ): Promise<T> {
+  ): Promise<ResponseData<T>> {
     return this.request<T>(url, { ...config, method: 'PATCH', data })
   }
 }
 
 // 创建默认请求实例
-const request = new Request('/api')
+const request = new Request()
 
 export default request

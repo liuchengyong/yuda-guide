@@ -18,8 +18,8 @@ import {
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import { RoleService } from '@/services/role.service'
 import { PermissionService } from '@/services/permission.service'
-import type { Role } from '@/types/role'
-import type { Permission } from '@/types/permission'
+import type { Role } from '@/types/entitys/role'
+import type { Permission } from '@/types/entitys/permission'
 
 const { Column } = Table
 

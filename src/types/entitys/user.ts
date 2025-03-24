@@ -1,5 +1,5 @@
-import { BaseEntity } from './base'
-import { Role } from './role'
+import { BaseEntity } from './entitys/base'
+import { Role } from './entitys/role'
 
 // 用户实体
 export interface User extends BaseEntity {

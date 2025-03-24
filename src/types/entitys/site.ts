@@ -1,4 +1,4 @@
-import { BaseEntity } from './base'
+import { BaseEntity } from './entitys/base'
 import { Category, CategorySite } from './category'
 import { Tag } from './tag'
 

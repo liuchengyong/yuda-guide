@@ -4,5 +4,19 @@
   "[prisma]": {
     "editor.defaultFormatter": "Prisma.prisma-insider",
     "editor.formatOnSave": true
-  }
+  },
+  "sqltools.connections": [
+    {
+      "pgOptions": {
+        "ssl": {
+          "rejectUnauthorized": true
+        }
+      },
+      "previewLimit": 50,
+      "server": "localhost",
+      "driver": "PostgreSQL",
+      "name": "yuda",
+      "connectString": "postgres://neondb_owner:npg_NCy84tXURZum@ep-silent-wind-a1zad9u6-pooler.ap-southeast-1.aws.neon.tech/neondb"
+    }
+  ]
 }

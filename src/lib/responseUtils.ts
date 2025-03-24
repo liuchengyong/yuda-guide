@@ -1,21 +1,30 @@
-import { ApiCode, ApiResponse } from '@/types/api'
+import { message } from 'antd'
+import { ResponseCode, ResponseStatus } from '@/types'
 import { NextResponse } from 'next/server'
 
 /**
  * API工具类，用于处理API请求和响应
  */
-export class ApiUtils {
+export class ResponseUtils {
   /**
    * 创建成功响应
    * @param data 响应数据
    * @param message 响应消息
    * @returns NextResponse对象
    */
-  static success<T = any>(data: T, message = '操作成功'): NextResponse {
+  static success<T>(data: T, message = '操作成功'): NextResponse {
     return NextResponse.json({
-      code: ApiCode.SUCCESS,
+      code: ResponseCode.SUCCESS,
       message,
       data,
+    })
+  }
+
+  static businessError(code: ResponseCode, message = '业务错误'): NextResponse {
+    return NextResponse.json({
+      code,
+      message,
+      data: null,
     })
   }
 
@@ -26,11 +35,11 @@ export class ApiUtils {
    * @param status HTTP状态码
    * @returns NextResponse对象
    */
-  static error(code: number, message: string, status = code): NextResponse {
+  static error(status: ResponseStatus, message: string): NextResponse {
     return NextResponse.json(
       {
-        code,
-        message,
+        code: ResponseCode.ERROR,
+        message: message,
         data: null,
       },
       { status },
@@ -43,7 +52,7 @@ export class ApiUtils {
    * @returns NextResponse对象
    */
   static badRequest(message = '请求参数错误'): NextResponse {
-    return this.error(ApiCode.BAD_REQUEST, message, ApiCode.BAD_REQUEST)
+    return this.error(ResponseStatus.BAD_REQUEST, message)
   }
 
   /**
@@ -52,7 +61,7 @@ export class ApiUtils {
    * @returns NextResponse对象
    */
   static unauthorized(message = '未授权'): NextResponse {
-    return this.error(ApiCode.UNAUTHORIZED, message, ApiCode.UNAUTHORIZED)
+    return this.error(ResponseStatus.UNAUTHORIZED, message)
   }
 
   /**
@@ -61,7 +70,7 @@ export class ApiUtils {
    * @returns NextResponse对象
    */
   static forbidden(message = '禁止访问'): NextResponse {
-    return this.error(ApiCode.FORBIDDEN, message, ApiCode.FORBIDDEN)
+    return this.error(ResponseStatus.FORBIDDEN, message)
   }
 
   /**
@@ -70,7 +79,7 @@ export class ApiUtils {
    * @returns NextResponse对象
    */
   static notFound(message = '资源不存在'): NextResponse {
-    return this.error(ApiCode.NOT_FOUND, message, ApiCode.NOT_FOUND)
+    return this.error(ResponseStatus.NOT_FOUND, message)
   }
 
   /**
@@ -79,6 +88,6 @@ export class ApiUtils {
    * @returns NextResponse对象
    */
   static serverError(message = '服务器内部错误'): NextResponse {
-    return this.error(ApiCode.INTERNAL_ERROR, message, ApiCode.INTERNAL_ERROR)
+    return this.error(ResponseStatus.INTERNAL_ERROR, message)
   }
 }

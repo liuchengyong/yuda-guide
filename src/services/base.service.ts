@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { BaseEntity } from '@/types/base'
+import { BaseEntity } from '@/types/entitys/base'
 
 /**
  * 基础服务类，提供通用的CRUD操作

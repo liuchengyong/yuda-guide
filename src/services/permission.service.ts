@@ -1,42 +1,39 @@
 import { prisma } from '@/lib/prisma'
-import { Permission } from '@/types/permission'
-import { BaseService } from './base.service'
+import { CreatePermissionDto, Permission } from '@/types/entitys/permission'
+import { ResponseUtils } from '@/lib/responseUtils'
+import { ResponseCode } from '@/types'
 
 /**
  * 权限服务类
  */
-export class PermissionService extends BaseService<Permission> {
-  constructor() {
-    // 定义权限查询时的默认字段选择
-    const selectFields = {
-      id: true,
-      type: true,
-      name: true,
-      description: true,
-      createdTime: true,
-      updatedTime: true,
-    }
-
-    super('permission', selectFields)
-  }
-
+export class PermissionService {
   /**
    * 创建权限
+   *
    */
-  async createPermission(data: Partial<Permission>) {
+  static async createPermission(data: CreatePermissionDto) {
     // 检查权限名是否已存在
-    const existingPermission = await prisma.permission.findUnique({
-      where: { name: data.name },
+    const existingPermission = await prisma.permission.findFirst({
+      where: {
+        OR: [
+          {
+            name: data.name,
+            code: data.code,
+          },
+        ],
+      },
     })
 
     if (existingPermission) {
-      throw new Error('Permission with this name already exists')
+      ResponseUtils.businessError(
+        ResponseCode.PERMISSION_EXISTING,
+        'Permission with this name already exists',
+      )
     }
-
-    // 创建权限
-    return prisma.permission.create({
+    const newPermission = await prisma.permission.create({
       data,
     })
+    ResponseUtils.success(newPermission)
   }
 
   /**

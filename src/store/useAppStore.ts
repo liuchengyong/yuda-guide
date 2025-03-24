@@ -20,7 +20,7 @@ type AppState = {
 }
 
 export const useAppStore = create<AppState>(
-  persist(
+  persist<AppState>(
     (set) => ({
       appName: '个人导航',
       appLogo: '/logo.png',

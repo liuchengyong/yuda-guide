@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { userService } from '@/services'
 import { userSchema, validateData } from '@/lib/validations'
-import { ApiUtils } from '@/lib/api'
+import { ApiUtils } from '@/lib/responseUtils'
 import {
   CreateUserRequest,
   UserListResponse,

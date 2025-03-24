@@ -1,6 +1,6 @@
 import { BaseEntity } from './base'
 import { Permission } from './permission'
-import { User, UserRole } from './user'
+import { User, UserRole } from '../user'
 
 // 角色实体
 export interface Role extends BaseEntity {

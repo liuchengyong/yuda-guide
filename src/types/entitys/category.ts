@@ -1,4 +1,4 @@
-import { BaseEntity } from './base'
+import { BaseEntity } from './entitys/base'
 import { Site } from './site'
 
 // 分类实体 (树结构)

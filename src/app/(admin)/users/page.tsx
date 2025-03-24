@@ -20,7 +20,7 @@ import { PlusOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons'
 import { UserService } from '@/services/user.service'
 import { RoleService } from '@/services/role.service'
 import type { User } from '@/types/user'
-import type { Role } from '@/types/role'
+import type { Role } from '@/types/entitys/role'
 
 const { Column } = Table
 
