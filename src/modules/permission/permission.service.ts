@@ -1,6 +1,14 @@
 import { prisma } from '@/lib/prisma'
-import { ResponseUtils } from '@/modules/http/response.util'
-import { ResponseCode } from '@/types'
+import { ResponseUtil } from '@/modules/http/response.util'
+import {
+  CreatePermissionDto,
+  CreatePermissionDtoSchema,
+} from './permission.model'
+import { ResponseCode } from '../http/http.model'
+import { NextRequest, NextResponse } from 'next/server'
+import { validateSchema } from '@/lib/validations'
+import { error } from 'console'
+import { message } from 'antd'
 
 /**
  * 权限服务类
@@ -10,65 +18,51 @@ export class PermissionService {
    * 创建权限
    *
    */
-  static async createPermission(data: CreatePermissionDto) {
-    const existingPermission = await prisma.permission.findFirst({
-      where: {
-        OR: [
-          {
-            name: data.name,
-            code: data.code,
-          },
-        ],
-      },
-    })
-
-    if (existingPermission) {
-      ResponseUtils.businessError(
-        ResponseCode.PERMISSION_EXISTING,
-        'Permission with this name already exists',
+  static async createPermission(request: NextRequest): Promise<NextResponse> {
+    try {
+      const createPermissionDto = (await request.json()) as CreatePermissionDto
+      const validData = validateSchema(
+        CreatePermissionDtoSchema,
+        createPermissionDto,
       )
+      if (validData.success) {
+        const existingPermission = await prisma.permission.findFirst({
+          where: {
+            OR: [
+              {
+                name: createPermissionDto.name,
+                code: createPermissionDto.code,
+              },
+            ],
+          },
+        })
+        if (existingPermission) {
+          return ResponseUtil.businessError(
+            ResponseCode.PERMISSION_EXISTING,
+            '权限已存在',
+          )
+        }
+        const newPermission = await prisma.permission.create({
+          data: createPermissionDto,
+        })
+        return ResponseUtil.success(newPermission)
+      } else {
+        return ResponseUtil.businessValidError(validData.errors)
+      }
+    } catch (error: any) {
+      return ResponseUtil.serverError(error.message)
     }
-    const newPermission = await prisma.permission.create({
-      data,
-    })
-    ResponseUtils.success(newPermission)
   }
 
   /**
    * 更新权限
    */
-  async updatePermission(id: string, data: Partial<Permission>) {
-    // 检查权限是否存在
-    const existingPermission = await prisma.permission.findUnique({
-      where: { id },
-    })
-
-    if (!existingPermission) {
-      throw new Error('Permission not found')
-    }
-
-    // 如果更新权限名，检查是否与其他权限冲突
-    if (data.name && data.name !== existingPermission.name) {
-      const conflictPermission = await prisma.permission.findUnique({
-        where: { name: data.name },
-      })
-
-      if (conflictPermission) {
-        throw new Error('Permission with this name already exists')
-      }
-    }
-
-    // 更新权限
-    return prisma.permission.update({
-      where: { id },
-      data,
-    })
-  }
+  static async updatePermission(request: NextRequest) {}
 
   /**
    * 删除权限
    */
-  async deletePermission(id: string) {
+  static async deletePermission(request: NextRequest) {
     // 检查权限是否存在
     const existingPermission = await prisma.permission.findUnique({
       where: { id },
@@ -84,6 +78,3 @@ export class PermissionService {
     })
   }
 }
-
-// 导出单例实例
-export const permissionService = new PermissionService()

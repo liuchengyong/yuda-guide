@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {}
 
 // 创建权限
 export async function POST(request: NextRequest) {
+  return PermissionService.createPermission(request)
   try {
     const body = (await request.json()) as CreatePermissionDto
     const validData = validateSchema(CreatePermissionDtoSchema, body)

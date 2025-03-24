@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ResponseCode, ResponseStatus } from './http.model'
+import { ValidationResultError } from '@/lib/validations'
 
 /**
  * API工具类，用于处理API请求和响应
@@ -19,10 +20,22 @@ export class ResponseUtil {
     })
   }
 
+  /**
+   *
+   *
+   */
   static businessError(code: ResponseCode, message = '业务错误'): NextResponse {
     return NextResponse.json({
       code,
       message,
+      data: null,
+    })
+  }
+
+  static businessValidError(errors?: ValidationResultError[]): NextResponse {
+    return NextResponse.json({
+      code: ResponseCode.PARAMS_VALID_ERROR,
+      message: errors ? JSON.stringify(errors) : '请求参数错误',
       data: null,
     })
   }

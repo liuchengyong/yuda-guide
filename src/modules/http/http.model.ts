@@ -44,6 +44,9 @@ export enum ResponseCode {
   SUCCESS = 0,
 
   ERROR = -1, // 系统错误
+  PARAMS_VALID_ERROR = 101, // 参数校验异常
+
   // 权限相关
-  PERMISSION_EXISTING = 10001,
+  PERMISSION_EXISTING = 10001, // 权限已存在
+  PERMISSION_PARAM_ERROR = 10002, // 参数异常
 }

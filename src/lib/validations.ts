@@ -1,8 +1,13 @@
 import { z } from 'zod'
 
+export interface ValidationResultError {
+  field: string
+  message: string
+}
+
 export interface ValidationResult {
   success: boolean
-  errors?: { field: string; message: string }[] // 错误信息的结构
+  errors?: ValidationResultError[] // 错误信息的结构
 }
 
 /**
