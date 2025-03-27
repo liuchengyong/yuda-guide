@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { ConfigProvider } from 'antd'
+import { ConfigProvider, App } from 'antd'
 import { StyleProvider } from '@ant-design/cssinjs'
 import themeConfig from '@/theme/themeConfig'
 import { AntdRegistry } from '@ant-design/nextjs-registry'

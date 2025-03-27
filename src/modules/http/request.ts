@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { ResponseData, ResponseStatus } from './http.model'
 import { merge } from 'lodash'
+import { notification } from 'antd'
 
 class Request {
   instance: AxiosInstance
@@ -16,7 +17,15 @@ class Request {
       R
     >(config)
     if (response.status === ResponseStatus.SUCCESS) {
-      return response.data
+      const responseData = response.data
+      if (responseData.code === 0) {
+        return responseData
+      } else {
+        notification.error({
+          message: responseData.message || '请求失败',
+        })
+        return Promise.reject()
+      }
     } else {
       return Promise.reject()
     }

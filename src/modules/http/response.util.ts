@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { ResponseCode, ResponseStatus } from './http.model'
+import { ResponseCode, ResponseData, ResponseStatus } from './http.model'
 import { ValidationResultError } from '@/lib/validations'
 
 /**
@@ -12,11 +12,31 @@ export class ResponseUtil {
    * @param message 响应消息
    * @returns NextResponse对象
    */
-  static success<T>(data: T, message = '操作成功'): NextResponse {
+  static success<T>(
+    data: T,
+    message = '操作成功',
+  ): NextResponse<ResponseData<T>> {
     return NextResponse.json({
       code: ResponseCode.SUCCESS,
       message,
       data,
+    })
+  }
+
+  static successList<T>(
+    datas: T[],
+    total = 0,
+    page = 1,
+    pageSize = 20,
+    message = '操作成功',
+  ): NextResponse<ResponseData<T>> {
+    return NextResponse.json({
+      code: ResponseCode.SUCCESS,
+      message,
+      datas,
+      total,
+      page,
+      pageSize,
     })
   }
 

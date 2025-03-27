@@ -4,10 +4,14 @@ import { BaseEntity } from '@/types/base.entity'
 import { RolePermission } from '@/types/entitys/role'
 
 export enum PermissionType {
-  Module = 'module', // 模块
-  Page = 'page', // 页面
-  Api = 'api', // api
-  Button = 'button', // 按钮
+  Module = 1, // 模块
+  Page, // 页面
+  Api, // api
+  Button, // 按钮
+}
+export interface PermissionTypeOption {
+  label: string
+  value: PermissionType
 }
 
 // 权限实体

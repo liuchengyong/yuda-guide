@@ -1,28 +1,15 @@
 /**
- * 分页数据接口
- */
-export interface PaginatedData<T> {
-  code: ResponseCode
-  list: T[]
-  total: number
-  page: number
-  pageSize: number
-  message: string
-}
-
-/**
- * 对象数据接口
- */
-export interface ObjectData<T> {
-  code: ResponseCode
-  message: string
-  data: T
-}
-
-/**
  * 响应接口
  */
-export type ResponseData<T> = PaginatedData<T> | ObjectData<T>
+export type ResponseData<T> = {
+  code: ResponseCode
+  message?: string
+  data?: T
+  datas?: T[]
+  total?: number
+  page?: number
+  pageSize?: number
+}
 
 /**
  * 响应状态码枚举

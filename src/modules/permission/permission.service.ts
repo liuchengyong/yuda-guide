@@ -3,20 +3,67 @@ import { ResponseUtil } from '@/modules/http/response.util'
 import {
   CreatePermissionDto,
   CreatePermissionDtoSchema,
+  Permission,
 } from './permission.model'
 import { ResponseCode } from '../http/http.model'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateSchema } from '@/lib/validations'
-import { error } from 'console'
-import { message } from 'antd'
 
 /**
  * 权限服务类
  */
 export class PermissionService {
   /**
+   * 获取权限列表
+   * @param request 请求对象
+   * @returns 权限列表响应
+   */
+  static async getPermissions(request: NextRequest): Promise<NextResponse> {
+    try {
+      const { searchParams } = new URL(request.url)
+      const page = parseInt(searchParams.get('page') || '1')
+      const pageSize = parseInt(searchParams.get('pageSize') || '10')
+      const name = searchParams.get('name') || undefined
+      const code = searchParams.get('code') || undefined
+      const type = searchParams.has('type')
+        ? parseInt(searchParams.get('type') as string)
+        : undefined
+
+      // 构建查询条件
+      const where: any = {}
+      if (name) where.name = { contains: name }
+      if (code) where.code = { contains: code }
+      if (type !== undefined) where.type = type
+
+      // 查询总数
+      const total = await prisma.permission.count({ where })
+
+      // 查询分页数据
+      const permissions = await prisma.permission.findMany({
+        where,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: { createdTime: 'desc' },
+        include: {
+          roles: {
+            include: {
+              role: true,
+            },
+          },
+        },
+      })
+
+      return ResponseUtil.successList(permissions, total, page, pageSize)
+    } catch (error: any) {
+      console.error('获取权限列表失败:', error)
+      return ResponseUtil.serverError(error.message)
+    }
+  }
+
+  /**
    * 创建权限
-   *
+   * @param request 请求对象
+   * @returns 创建结果响应
    */
   static async createPermission(request: NextRequest): Promise<NextResponse> {
     try {
@@ -56,25 +103,94 @@ export class PermissionService {
 
   /**
    * 更新权限
+   * @param request 请求对象
+   * @returns 更新结果响应
    */
-  static async updatePermission(request: NextRequest) {}
+  static async updatePermission(request: NextRequest): Promise<NextResponse> {
+    try {
+      const { searchParams } = new URL(request.url)
+      const id = searchParams.get('id')
+
+      if (!id) {
+        return ResponseUtil.badRequest('权限ID不能为空')
+      }
+
+      const updateData = (await request.json()) as CreatePermissionDto
+      const validData = validateSchema(CreatePermissionDtoSchema, updateData)
+
+      if (!validData.success) {
+        return ResponseUtil.businessValidError(validData.errors)
+      }
+
+      // 检查权限是否存在
+      const existingPermission = await prisma.permission.findUnique({
+        where: { id },
+      })
+
+      if (!existingPermission) {
+        return ResponseUtil.businessError(ResponseCode.ERROR, '权限不存在')
+      }
+
+      // 检查名称或代码是否与其他权限冲突
+      const conflictPermission = await prisma.permission.findFirst({
+        where: {
+          OR: [{ name: updateData.name }, { code: updateData.code }],
+          NOT: { id },
+        },
+      })
+
+      if (conflictPermission) {
+        return ResponseUtil.businessError(
+          ResponseCode.PERMISSION_EXISTING,
+          '权限名称或权限码已存在',
+        )
+      }
+
+      // 更新权限
+      const updatedPermission = await prisma.permission.update({
+        where: { id },
+        data: updateData,
+      })
+
+      return ResponseUtil.success(updatedPermission)
+    } catch (error: any) {
+      console.error('更新权限失败:', error)
+      return ResponseUtil.serverError(error.message)
+    }
+  }
 
   /**
    * 删除权限
+   * @param request 请求对象
+   * @returns 删除结果响应
    */
-  static async deletePermission(request: NextRequest) {
-    // 检查权限是否存在
-    const existingPermission = await prisma.permission.findUnique({
-      where: { id },
-    })
+  static async deletePermission(request: NextRequest): Promise<NextResponse> {
+    try {
+      const { searchParams } = new URL(request.url)
+      const id = searchParams.get('id')
 
-    if (!existingPermission) {
-      throw new Error('Permission not found')
+      if (!id) {
+        return ResponseUtil.badRequest('权限ID不能为空')
+      }
+
+      // 检查权限是否存在
+      const existingPermission = await prisma.permission.findUnique({
+        where: { id },
+      })
+
+      if (!existingPermission) {
+        return ResponseUtil.businessError(ResponseCode.ERROR, '权限不存在')
+      }
+
+      // 删除权限（关联的角色-权限记录会通过级联删除自动删除）
+      await prisma.permission.delete({
+        where: { id },
+      })
+
+      return ResponseUtil.success(null, '删除权限成功')
+    } catch (error: any) {
+      console.error('删除权限失败:', error)
+      return ResponseUtil.serverError(error.message)
     }
-
-    // 删除权限（关联的角色-权限记录会通过级联删除自动删除）
-    return prisma.permission.delete({
-      where: { id },
-    })
   }
 }

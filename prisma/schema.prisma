@@ -58,7 +58,7 @@ model UserRole {
 // 权限实体
 model Permission {
   id          String   @id @default(uuid()) @db.Uuid
-  type        String
+  type        Int
   name        String   @unique
   code        String   @unique
   description String?
