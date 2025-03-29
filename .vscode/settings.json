@@ -2,7 +2,7 @@
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "[prisma]": {
-    "editor.defaultFormatter": "Prisma.prisma-insider",
+    "editor.defaultFormatter": "Prisma.prisma",
     "editor.formatOnSave": true
   },
   "sqltools.connections": [

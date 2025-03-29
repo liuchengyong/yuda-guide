@@ -20,6 +20,7 @@ model User {
   password    String
   avatar      String?
   email       String   @unique
+  status      Int      @default(1) // 1: 正常, 2: 禁用
   createdTime DateTime @default(now())
   updatedTime DateTime @updatedAt
 
@@ -32,6 +33,7 @@ model Role {
   id          String   @id @default(uuid()) @db.Uuid
   name        String   @unique
   description String?
+  status      Int      @default(1) // 1: 正常, 2: 禁用
   createdTime DateTime @default(now())
   updatedTime DateTime @updatedAt
 
@@ -64,9 +66,12 @@ model Permission {
   description String?
   createdTime DateTime @default(now())
   updatedTime DateTime @updatedAt
+  parentId    String?  @db.Uuid
 
   // 关联
-  roles RolePermission[]
+  roles    RolePermission[]
+  parent   Permission?      @relation("PermissionTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Permission[]     @relation("PermissionTree")
 }
 
 // 角色-权限关联表

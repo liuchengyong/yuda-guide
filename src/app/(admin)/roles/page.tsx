@@ -1,7 +1,7 @@
 'use client'
 
-import { PageContainer } from '@ant-design/pro-layout'
+import RolesPage from '@/modules/role/role.page'
 
 export default function Page() {
-  return <PageContainer></PageContainer>
+  return <RolesPage></RolesPage>
 }

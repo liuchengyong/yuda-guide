@@ -12,14 +12,10 @@ import React, { useRef, useState } from 'react'
 import { request } from '../http/request'
 import {
   CreatePermissionDto,
-  CreatePermissionVo,
   Permission,
-  PermissionType,
+  SearchPermissionDto,
 } from './permission.model'
-import {
-  PERMISSION_TYPE_OPTIONS,
-  PERMISSION_TYPE_OPTIONS_COLORS,
-} from './permission.constant'
+import { PERMISSION_TYPE_OPTIONS } from './permission.constant'
 
 export default function PermissionsPage() {
   const { modal } = App.useApp()
@@ -39,9 +35,12 @@ export default function PermissionsPage() {
       fieldProps: {
         options: PERMISSION_TYPE_OPTIONS,
       },
-      render: (value, record) => (
-        <Tag color={PERMISSION_TYPE_OPTIONS_COLORS[record.type]}>{value}</Tag>
-      ),
+      render: (value, record) => {
+        const config = PERMISSION_TYPE_OPTIONS.find(
+          (option) => option.value === record.type,
+        )
+        return <Tag color={config?.color}>{value}</Tag>
+      },
     },
     {
       title: '名称',
@@ -102,10 +101,10 @@ export default function PermissionsPage() {
   // 处理创建权限
   const handleCreate = async (values: CreatePermissionDto) => {
     try {
-      const response = await request.post<
-        CreatePermissionDto,
-        CreatePermissionVo
-      >('/api/permissions', values)
+      const response = await request.post<CreatePermissionDto, Permission>(
+        '/api/permissions',
+        values,
+      )
       if (response.code === 0) {
         message.success('创建权限成功')
         actionRef.current?.reload()
@@ -119,6 +118,8 @@ export default function PermissionsPage() {
       return false
     }
   }
+
+  // 处理更新权限
   const handleUpdate = async (values: CreatePermissionDto) => {
     try {
       if (!currentRecord) {
@@ -144,6 +145,8 @@ export default function PermissionsPage() {
       return false
     }
   }
+
+  // 处理权限表单提交
   const handleFinish = async (values: CreatePermissionDto) => {
     if (currentRecord) {
       return handleUpdate(values)
@@ -151,8 +154,6 @@ export default function PermissionsPage() {
       return handleCreate(values)
     }
   }
-
-  // 处理更新权限
 
   // 处理删除权限
   const handleDelete = async (record: Permission) => {
@@ -192,7 +193,7 @@ export default function PermissionsPage() {
       delete queryParams.current // 删除current参数，使用page代替
 
       // 发起请求获取权限列表数据
-      const response = await request.get<any, Permission>(
+      const response = await request.get<SearchPermissionDto, Permission>(
         '/api/permissions',
         queryParams,
       )
@@ -235,6 +236,9 @@ export default function PermissionsPage() {
             新建权限
           </Button>,
         ]}
+        search={{
+          defaultCollapsed: false,
+        }}
       />
 
       {/* 编辑权限弹窗 */}

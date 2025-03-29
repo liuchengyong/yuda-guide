@@ -1,1 +1,1 @@
-DROP TABLE  Permission
+desc Permission;

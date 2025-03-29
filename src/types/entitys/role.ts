@@ -11,9 +11,11 @@ export interface Role extends BaseEntity {
 }
 
 // 角色-权限关联
-export interface RolePermission extends BaseEntity {
+export interface RolePermission {
   roleId: string
   permissionId: string
+  createdTime: Date
+  updatedTime: Date
   role?: Role
   permission?: Permission
 }

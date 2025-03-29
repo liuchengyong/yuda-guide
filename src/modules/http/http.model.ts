@@ -29,11 +29,17 @@ export enum ResponseStatus {
  */
 export enum ResponseCode {
   SUCCESS = 0,
+  ERROR = 1,
+  INVALID_PARAM = 1001,
+  BUSINESS_ERROR = 2001,
+  SERVER_ERROR = 5001,
+  UNAUTHORIZED = 4001,
+  PERMISSION_EXISTING = 4002,
+  USER_EXISTING = 4003,
+  ROLE_EXISTING = 4004,
 
-  ERROR = -1, // 系统错误
   PARAMS_VALID_ERROR = 101, // 参数校验异常
 
   // 权限相关
-  PERMISSION_EXISTING = 10001, // 权限已存在
   PERMISSION_PARAM_ERROR = 10002, // 参数异常
 }

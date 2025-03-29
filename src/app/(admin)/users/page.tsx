@@ -1,7 +1,7 @@
 'use client'
 
-import { PageContainer } from '@ant-design/pro-layout'
+import UsersPage from '@/modules/user/user.page'
 
 export default function Page() {
-  return <PageContainer></PageContainer>
+  return <UsersPage></UsersPage>
 }

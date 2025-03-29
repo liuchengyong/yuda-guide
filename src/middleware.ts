@@ -3,12 +3,12 @@ import { getToken } from 'next-auth/jwt'
 
 // 需要保护的API路径前缀
 const PROTECTED_API_PATHS = [
-  '/api/users',
-  '/api/roles',
+  // '/api/users',
+  // '/api/roles',
   // '/api/permissions',
-  '/api/sites',
-  '/api/tags',
-  '/api/categories',
+  // '/api/sites',
+  // '/api/tags',
+  // '/api/categories',
 ]
 
 // 权限映射表，定义不同API路径和HTTP方法所需的权限

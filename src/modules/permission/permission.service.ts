@@ -8,6 +8,7 @@ import {
 import { ResponseCode } from '../http/http.model'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateSchema } from '@/lib/validations'
+import { Prisma } from '@prisma/client'
 
 /**
  * 权限服务类
@@ -20,20 +21,25 @@ export class PermissionService {
    */
   static async getPermissions(request: NextRequest): Promise<NextResponse> {
     try {
-      const { searchParams } = new URL(request.url)
-      const page = parseInt(searchParams.get('page') || '1')
-      const pageSize = parseInt(searchParams.get('pageSize') || '10')
-      const name = searchParams.get('name') || undefined
-      const code = searchParams.get('code') || undefined
-      const type = searchParams.has('type')
-        ? parseInt(searchParams.get('type') as string)
-        : undefined
+      const { searchParams } = request.nextUrl
+      const searchPermissionDto = {
+        page: parseInt(searchParams.get('page') || '1'),
+        pageSize: parseInt(searchParams.get('pageSize') || '10'),
+        name: searchParams.get('name') || undefined,
+        code: searchParams.get('code') || undefined,
+        type: searchParams.has('type')
+          ? parseInt(searchParams.get('type') as string)
+          : undefined,
+      }
 
       // 构建查询条件
-      const where: any = {}
-      if (name) where.name = { contains: name }
-      if (code) where.code = { contains: code }
-      if (type !== undefined) where.type = type
+      const where: Prisma.PermissionWhereInput = {}
+      if (searchPermissionDto.name)
+        where.name = { contains: searchPermissionDto.name }
+      if (searchPermissionDto.code)
+        where.code = { contains: searchPermissionDto.code }
+      if (searchPermissionDto.type !== undefined)
+        where.type = searchPermissionDto.type
 
       // 查询总数
       const total = await prisma.permission.count({ where })
@@ -41,19 +47,17 @@ export class PermissionService {
       // 查询分页数据
       const permissions = await prisma.permission.findMany({
         where,
-        skip: (page - 1) * pageSize,
-        take: pageSize,
+        skip: (searchPermissionDto.page - 1) * searchPermissionDto.pageSize,
+        take: searchPermissionDto.pageSize,
         orderBy: { createdTime: 'desc' },
-        include: {
-          roles: {
-            include: {
-              role: true,
-            },
-          },
-        },
       })
 
-      return ResponseUtil.successList(permissions, total, page, pageSize)
+      return ResponseUtil.successList(
+        permissions,
+        total,
+        searchPermissionDto.page,
+        searchPermissionDto.pageSize,
+      )
     } catch (error: any) {
       console.error('获取权限列表失败:', error)
       return ResponseUtil.serverError(error.message)
@@ -73,15 +77,15 @@ export class PermissionService {
         createPermissionDto,
       )
       if (validData.success) {
-        const existingPermission = await prisma.permission.findFirst({
-          where: {
-            OR: [
-              {
-                name: createPermissionDto.name,
-                code: createPermissionDto.code,
-              },
-            ],
+        const where: Prisma.PermissionWhereInput = {}
+        where.OR = [
+          {
+            name: createPermissionDto.name,
+            code: createPermissionDto.code,
           },
+        ]
+        const existingPermission = await prisma.permission.findFirst({
+          where,
         })
         if (existingPermission) {
           return ResponseUtil.businessError(
