@@ -20,3 +20,5 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   return PermissionService.deletePermission(request)
 }
+
+export const dynamic = 'force-dynamic'

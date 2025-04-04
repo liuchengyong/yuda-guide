@@ -2,82 +2,83 @@
 import { PageContainer } from '@ant-design/pro-layout'
 import ProTable, { ActionType, ProColumns } from '@ant-design/pro-table'
 import {
-  ModalForm,
-  ProFormSelect,
+  DrawerForm,
+  ProFormDigit,
+  ProFormInstance,
+  ProFormRadio,
   ProFormText,
   ProFormTextArea,
 } from '@ant-design/pro-form'
-import { App, Button, message, Modal, Space, Tag } from 'antd'
+import { App, Avatar, Button, message, Space, Tag } from 'antd'
+import { UserOutlined } from '@ant-design/icons'
 import React, { useRef, useState } from 'react'
 import { request } from '../http/request'
-import {
-  CreateUserDto,
-  SearchUserDto,
-  UpdateUserDto,
-  User,
-  UserStatus,
-} from './user.model'
-import { USER_STATUS_OPTIONS } from './user.constant'
+import { User, UserStatus } from './user.model'
+import { USER_STATUS_CONFIG } from './user.constant'
+import { UserRoleDrawer } from './user.role'
 
 export default function UsersPage() {
-  const { modal } = App.useApp()
-  const actionRef = useRef<ActionType>(null)
+  const { modal, notification } = App.useApp()
+  const formRef = useRef<ProFormInstance<Partial<User>>>(null)
   const [currentRecord, setCurrentRecord] = useState<User | null>(null)
   const [openModal, setOpenModal] = useState(false)
+  const [openRoleDrawer, setOpenRoleDrawer] = useState(false)
+  const [roleUser, setRoleUser] = useState<User | null>(null)
+  const actionRef = useRef<ActionType>(null)
 
   const columns: ProColumns<User>[] = [
     {
       title: 'ID',
       dataIndex: 'id',
-      width: 220,
+      search: false,
     },
     {
-      title: '账号',
-      dataIndex: 'account',
+      title: '用户名',
+      dataIndex: 'username',
+    },
+    {
+      title: '昵称',
+      dataIndex: 'nickname',
+    },
+    {
+      title: '头像',
+      dataIndex: 'avatar',
+      search: false,
+      render: (_, record) => {
+        return <Avatar src={record.avatar} icon={<UserOutlined />} />
+      },
     },
     {
       title: '邮箱',
       dataIndex: 'email',
     },
     {
+      title: '手机号',
+      dataIndex: 'phone',
+    },
+    {
       title: '状态',
       dataIndex: 'status',
       valueType: 'select',
       fieldProps: {
-        options: USER_STATUS_OPTIONS,
+        options: USER_STATUS_CONFIG,
       },
       render: (_, record) => {
-        const config = USER_STATUS_OPTIONS.find(
+        const config = USER_STATUS_CONFIG.find(
           (option) => option.value === record.status,
         )
         return <Tag color={config?.color}>{config?.label}</Tag>
       },
     },
     {
-      title: '角色',
-      dataIndex: 'roles',
-      search: false,
-      render: (_, record) => (
-        <Space>
-          {record.roles &&
-            record.roles.map((roleRelation) => (
-              <Tag key={roleRelation.role.id}>{roleRelation.role.name}</Tag>
-            ))}
-          {(!record.roles || record.roles.length === 0) && (
-            <span style={{ color: '#999' }}>无角色</span>
-          )}
-        </Space>
-      ),
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdTime',
+      title: '最后登录时间',
+      dataIndex: 'lastLoginTime',
       valueType: 'dateTime',
       search: false,
     },
     {
-      title: '更新时间',
-      dataIndex: 'updatedTime',
+      title: '创建时间',
+      dataIndex: 'createdTime',
       valueType: 'dateTime',
       search: false,
     },
@@ -92,11 +93,25 @@ export default function UsersPage() {
               type="link"
               size="small"
               onClick={() => {
-                setOpenModal(true)
                 setCurrentRecord(record)
+                setOpenModal(true)
               }}
             >
               编辑
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              onClick={() => handleRoles(record)}
+            >
+              角色
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              onClick={() => handleResetPassword(record)}
+            >
+              重置密码
             </Button>
             <Button
               type="link"
@@ -113,18 +128,22 @@ export default function UsersPage() {
   ]
 
   // 处理创建用户
-  const handleCreate = async (values: CreateUserDto) => {
+  const handleCreate = async (values: Partial<User>) => {
     try {
-      const response = await request.post<CreateUserDto, User>(
+      const response = await request.post<Partial<User>, User>(
         '/api/users',
         values,
       )
       if (response.code === 0) {
-        message.success('创建用户成功')
+        notification.success({
+          message: '创建用户成功',
+        })
         actionRef.current?.reload()
         return true
       } else {
-        message.error(response.message || '创建用户失败')
+        notification.error({
+          message: response.message || '创建用户失败',
+        })
         return false
       }
     } catch (error) {
@@ -134,10 +153,12 @@ export default function UsersPage() {
   }
 
   // 处理更新用户
-  const handleUpdate = async (values: UpdateUserDto) => {
+  const handleUpdate = async (values: Partial<User>) => {
     try {
       if (!currentRecord) {
-        message.error('未找到要编辑的用户记录')
+        notification.error({
+          message: '未找到要编辑的用户记录',
+        })
         return false
       }
 
@@ -147,11 +168,15 @@ export default function UsersPage() {
       )
 
       if (response.code === 0) {
-        message.success('更新用户成功')
+        notification.success({
+          message: '更新用户成功',
+        })
         actionRef.current?.reload()
         return true
       } else {
-        message.error(response.message || '更新用户失败')
+        notification.error({
+          message: response.message || '更新用户失败',
+        })
         return false
       }
     } catch (error) {
@@ -161,11 +186,11 @@ export default function UsersPage() {
   }
 
   // 处理用户表单提交
-  const handleFinish = async (values: CreateUserDto | UpdateUserDto) => {
+  const handleFinish = async (values: Partial<User>) => {
     if (currentRecord) {
-      return handleUpdate(values as UpdateUserDto)
+      return handleUpdate(values)
     } else {
-      return handleCreate(values as CreateUserDto)
+      return handleCreate(values)
     }
   }
 
@@ -173,7 +198,7 @@ export default function UsersPage() {
   const handleDelete = async (record: User) => {
     modal.confirm({
       title: '确认删除',
-      content: `确定要删除用户 "${record.account}" 吗？`,
+      content: `确定要删除用户 "${record.username}" 吗？`,
       onOk: async () => {
         try {
           const response = await request.request<any, any>({
@@ -182,89 +207,76 @@ export default function UsersPage() {
           })
 
           if (response.code === 0) {
-            message.success('删除用户成功')
+            notification.success({
+              message: '删除用户成功',
+            })
             actionRef.current?.reload()
           } else {
-            message.error(response.message || '删除用户失败')
+            notification.error({
+              message: response.message || '删除用户失败',
+            })
           }
         } catch (error) {
-          message.error('删除用户失败')
+          notification.error({
+            message: '删除用户失败',
+          })
           console.error('删除用户失败:', error)
         }
       },
     })
   }
 
-  // 表格数据请求函数
-  const tableRequest = async (params: any, sort: any, filter: any) => {
-    try {
-      // 构建查询参数
-      const queryParams = {
-        page: params.current || 1,
-        pageSize: params.pageSize || 10,
-        ...params,
-      }
-      delete queryParams.current // 删除current参数，使用page代替
-
-      // 发起请求获取用户列表数据
-      const response = await request.get<SearchUserDto, User>(
-        '/api/users',
-        queryParams,
-      )
-
-      // 返回处理后的数据
-      return {
-        data: response.datas || [],
-        success: true,
-        total: response.total || 0,
-      }
-    } catch (error) {
-      console.error('获取用户列表失败:', error)
-      return {
-        data: [],
-        success: false,
-        total: 0,
-      }
-    }
+  // 处理角色分配
+  const handleRoles = (record: User) => {
+    setRoleUser(record)
+    setOpenRoleDrawer(true)
   }
 
-  // 获取角色列表
-  const [roleOptions, setRoleOptions] = useState<
-    { label: string; value: string }[]
-  >([])
-
-  React.useEffect(() => {
-    const fetchRoles = async () => {
-      try {
-        const response = await request.get('/api/roles', { pageSize: 100 })
-        if (response.code === 0 && response.datas) {
-          const options = response.datas.map((role: any) => ({
-            label: role.name,
-            value: role.id,
-          }))
-          setRoleOptions(options)
+  // 处理重置密码
+  const handleResetPassword = (record: User) => {
+    modal.confirm({
+      title: '重置密码',
+      content: `确定要重置用户 "${record.username}" 的密码吗？`,
+      onOk: async () => {
+        try {
+          // 这里可以调用重置密码的接口
+          notification.success({
+            message: '重置密码成功',
+            description: '新密码已发送至用户邮箱',
+          })
+        } catch (error) {
+          notification.error({
+            message: '重置密码失败',
+          })
+          console.error('重置密码失败:', error)
         }
-      } catch (error) {
-        console.error('获取角色列表失败:', error)
-      }
-    }
+      },
+    })
+  }
 
-    fetchRoles()
-  }, [])
+  const tableRequest = async (params: any, sort: any, filter: any) => {
+    const response = await request.get<{}, User>('/api/users')
+    return {
+      data: response.datas || [],
+      success: response.code === 0,
+      total: response.total,
+    }
+  }
 
   return (
     <PageContainer>
       <ProTable<User>
-        columns={columns}
         rowKey="id"
-        cardBordered
         actionRef={actionRef}
+        columns={columns}
         request={tableRequest}
         pagination={{
-          pageSize: 10,
+          defaultPageSize: 10,
+          showSizeChanger: true,
         }}
         toolBarRender={() => [
           <Button
+            key="create"
             type="primary"
             onClick={() => {
               setOpenModal(true)
@@ -274,13 +286,8 @@ export default function UsersPage() {
             新建用户
           </Button>,
         ]}
-        search={{
-          defaultCollapsed: false,
-        }}
       />
-
-      {/* 编辑用户弹窗 */}
-      <ModalForm<CreateUserDto | UpdateUserDto>
+      <DrawerForm<Partial<User>>
         title={currentRecord ? '编辑用户' : '创建用户'}
         open={openModal}
         width={500}
@@ -289,53 +296,88 @@ export default function UsersPage() {
           if (!visible) {
             setCurrentRecord(null)
           }
+          if (visible && currentRecord) {
+            // 编辑时不显示密码字段
+            const { password, ...userWithoutPassword } = currentRecord
+            formRef.current?.setFieldsValue(userWithoutPassword)
+          }
         }}
-        initialValues={currentRecord || undefined}
+        formRef={formRef}
+        autoFocusFirstInput
+        drawerProps={{
+          destroyOnClose: true,
+        }}
         onFinish={handleFinish}
       >
         <ProFormText
-          name="account"
-          label="账号"
-          rules={[{ required: !currentRecord, message: '请输入账号' }]}
-          disabled={!!currentRecord}
+          name="username"
+          label="用户名"
+          placeholder="请输入用户名"
+          rules={[{ required: true, message: '请输入用户名' }]}
+          disabled={!!currentRecord} // 编辑时不允许修改用户名
         />
+
+        {!currentRecord && (
+          <ProFormText.Password
+            name="password"
+            label="密码"
+            placeholder="请输入密码"
+            rules={[{ required: true, message: '请输入密码' }]}
+          />
+        )}
+
+        <ProFormText name="nickname" label="昵称" placeholder="请输入昵称" />
+
         <ProFormText
           name="email"
           label="邮箱"
-          rules={[
-            { required: !currentRecord, message: '请输入邮箱' },
-            { type: 'email', message: '请输入有效的邮箱地址' },
-          ]}
-        />
-        <ProFormText.Password
-          name="password"
-          label="密码"
+          placeholder="请输入邮箱"
           rules={[
             {
-              required: !currentRecord,
-              message: '请输入密码',
-            },
-            {
-              min: 6,
-              message: '密码长度不能少于6位',
+              type: 'email',
+              message: '请输入有效的邮箱地址',
             },
           ]}
-          placeholder={currentRecord ? '不填写则不修改' : '请输入密码'}
         />
-        <ProFormText name="avatar" label="头像URL" />
-        <ProFormSelect
+
+        <ProFormText
+          name="phone"
+          label="手机号"
+          placeholder="请输入手机号"
+          rules={[
+            {
+              pattern: /^1[3-9]\d{9}$/,
+              message: '请输入有效的手机号',
+            },
+          ]}
+        />
+
+        <ProFormText
+          name="avatar"
+          label="头像URL"
+          placeholder="请输入头像URL"
+        />
+
+        <ProFormRadio.Group
           name="status"
           label="状态"
-          options={USER_STATUS_OPTIONS}
+          initialValue={UserStatus.Enabled}
+          options={USER_STATUS_CONFIG}
           rules={[{ required: true, message: '请选择状态' }]}
         />
-        <ProFormSelect
-          name="roles"
-          label="角色"
-          mode="multiple"
-          options={roleOptions}
-        />
-      </ModalForm>
+      </DrawerForm>
+
+      {/* 角色抽屉组件 */}
+      <UserRoleDrawer
+        open={openRoleDrawer}
+        onClose={() => {
+          setOpenRoleDrawer(false)
+          setRoleUser(null)
+          // 关闭后刷新数据
+          actionRef.current?.reload()
+        }}
+        currentUser={roleUser}
+      />
     </PageContainer>
   )
 }

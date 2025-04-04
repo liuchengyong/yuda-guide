@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { PermissionType, PermissionTypeConfig } from './permission.model'
 
 /**
@@ -29,9 +30,42 @@ export const PERMISSION_TYPE_OPTIONS: PermissionTypeConfig[] = [
     startWith: 'api',
   },
   {
-    label: '按钮',
-    value: PermissionType.Button,
+    label: '元素',
+    value: PermissionType.Element,
     color: 'purple',
-    startWith: 'button',
+    startWith: 'element',
   },
 ]
+
+/**
+ * 权限验证
+ */
+export const PermissionSchema = z
+  .object({
+    type: z.nativeEnum(PermissionType),
+    name: z
+      .string()
+      .min(1, '权限名不能为空')
+      .max(100, '权限名不能超过100个字符'),
+    code: z
+      .string()
+      .min(1, '权限编码不能为空')
+      .max(300, '权限编码不能超过300个字符'),
+    sort: z.number().min(0, '排序值不能小于0').max(200, '排序值不能超过200'),
+    description: z.string().max(200, '描述不能超过200个字符').optional(),
+    path: z.string().max(200, '路径不能超过200个字符').optional(),
+    icon: z.string().max(200, '图标不能超过200个字符').optional(),
+    parentId: z.string().min(1, '父级ID不能为空'),
+  })
+  .superRefine((data, ctx) => {
+    let config = PERMISSION_TYPE_OPTIONS.find(
+      (item) => item.value === data.type,
+    )
+    if (config && !data.code.startsWith(config.startWith)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `权限编码格式错误,必须以${config.startWith}开头`,
+        path: ['code'],
+      })
+    }
+  })

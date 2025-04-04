@@ -1,14 +1,11 @@
-import { Button } from 'antd'
-import { z } from 'zod'
-import { BaseEntity } from '@/types/base.entity'
-import { RolePermission } from '@/types/entitys/role'
 // 权限类型
 export enum PermissionType {
-  Module = 1, // 模块
+  System, // 系统
+  Module, // 模块
+  Menu, // 菜单
   Page, // 页面
   Api, // api
-  Button, // 按钮
-  Menu, // 菜单
+  Element, // 元素
 }
 
 // 权限类型配置
@@ -27,38 +24,37 @@ export interface Permission {
   code: string
   parentId: string
   description: string
+  sort: number
+  path: string
+  icon: string
   createdTime: Date
   updatedTime: Date
-
   parent: Permission
-  roles: RolePermission[]
+  // roles: RolePermission[]
   children: Permission[]
 }
 
-// 权限实体验证
-export const PermissionSchema = z.object({
-  type: z.nativeEnum(PermissionType),
-  name: z.string().min(1, '').max(100),
-  code: z.string().min(1).max(300),
-  description: z.string(),
-})
-
-// 创建权限请求参数
 export type CreatePermissionDto = Pick<
   Permission,
-  'type' | 'name' | 'code' | 'description'
+  | 'name'
+  | 'code'
+  | 'type'
+  | 'sort'
+  | 'description'
+  | 'path'
+  | 'icon'
+  | 'parentId'
 >
 
-export type SearchPermissionDto = Partial<
-  Pick<Permission, 'type' | 'name' | 'code' | 'description' | 'id'>
-> & {
-  page: number
-  pageSize: number
-}
-
-export const CreatePermissionDtoSchema = PermissionSchema.pick({
-  type: true,
-  name: true,
-  code: true,
-  description: true,
-})
+export type UpdatePermissionDto = Pick<
+  Permission,
+  | 'id'
+  | 'name'
+  | 'code'
+  | 'type'
+  | 'sort'
+  | 'description'
+  | 'path'
+  | 'icon'
+  | 'parentId'
+>

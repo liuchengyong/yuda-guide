@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { RoleService } from '@/modules/role/role.service'
+import { NextRequest, NextResponse } from 'next/server'
 
 /**
  * 处理GET请求，获取角色列表

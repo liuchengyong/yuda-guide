@@ -2,67 +2,64 @@
 import { PageContainer } from '@ant-design/pro-layout'
 import ProTable, { ActionType, ProColumns } from '@ant-design/pro-table'
 import {
-  ModalForm,
-  ProFormSelect,
+  DrawerForm,
+  ProFormField,
+  ProFormInstance,
+  ProFormRadio,
   ProFormText,
   ProFormTextArea,
 } from '@ant-design/pro-form'
-import { App, Button, message, Modal, Space, Tag } from 'antd'
-import React, { useRef, useState } from 'react'
+import { App, Button, Space, Tag, Tree, TreeDataNode } from 'antd'
+import React, { Key, useRef, useState } from 'react'
 import { request } from '../http/request'
 import {
   CreateRoleDto,
+  GetRoleDto,
   Role,
   RoleStatus,
-  SearchRoleDto,
   UpdateRoleDto,
 } from './role.model'
-import { ROLE_STATUS_OPTIONS } from './role.constant'
-import { PermissionType } from '../permission/permission.model'
-import { PERMISSION_TYPE_OPTIONS } from '../permission/permission.constant'
+import { ROLE_STATUS_CONFIG } from './role.constant'
+import { Permission } from '@prisma/client'
+import { buildTree, dfs } from '@/lib/utils'
+import { DataNode } from 'antd/es/tree'
 
 export default function RolesPage() {
-  const { modal } = App.useApp()
-  const actionRef = useRef<ActionType>(null)
+  const { modal, notification } = App.useApp()
+  const formRef = useRef<ProFormInstance<Partial<Role>>>(null)
   const [currentRecord, setCurrentRecord] = useState<Role | null>(null)
   const [openModal, setOpenModal] = useState(false)
-
+  const actionRef = useRef<ActionType>(null)
+  const [treeData, setTreeData] = useState<TreeDataNode[]>([])
+  const [expandedKeys, setExpandedKeys] = useState<string[]>([])
   const columns: ProColumns<Role>[] = [
     {
       title: 'ID',
       dataIndex: 'id',
-      width: 220,
     },
     {
       title: '角色名称',
       dataIndex: 'name',
     },
     {
-      title: '描述',
-      dataIndex: 'description',
-      search: false,
-    },
-    {
       title: '状态',
       dataIndex: 'status',
       valueType: 'select',
       fieldProps: {
-        options: ROLE_STATUS_OPTIONS,
+        options: ROLE_STATUS_CONFIG,
       },
       render: (_, record) => {
-        const config = ROLE_STATUS_OPTIONS.find(
+        const config = ROLE_STATUS_CONFIG.find(
           (option) => option.value === record.status,
         )
         return <Tag color={config?.color}>{config?.label}</Tag>
       },
     },
     {
-      title: '权限数量',
-      dataIndex: 'permissions',
+      title: '描述',
+      dataIndex: 'description',
       search: false,
-      render: (_, record) => {
-        return record.permissions ? record.permissions.length : 0
-      },
+      ellipsis: true,
     },
     {
       title: '创建时间',
@@ -87,8 +84,8 @@ export default function RolesPage() {
               type="link"
               size="small"
               onClick={() => {
-                setOpenModal(true)
                 setCurrentRecord(record)
+                setOpenModal(true)
               }}
             >
               编辑
@@ -108,18 +105,22 @@ export default function RolesPage() {
   ]
 
   // 处理创建角色
-  const handleCreate = async (values: CreateRoleDto) => {
+  const handleCreate = async (values: Partial<Role>) => {
     try {
-      const response = await request.post<CreateRoleDto, Role>(
+      const response = await request.post<Partial<Role>, Role>(
         '/api/roles',
         values,
       )
       if (response.code === 0) {
-        message.success('创建角色成功')
+        notification.success({
+          message: '创建角色成功',
+        })
         actionRef.current?.reload()
         return true
       } else {
-        message.error(response.message || '创建角色失败')
+        notification.error({
+          message: response.message || '创建角色失败',
+        })
         return false
       }
     } catch (error) {
@@ -132,21 +133,26 @@ export default function RolesPage() {
   const handleUpdate = async (values: UpdateRoleDto) => {
     try {
       if (!currentRecord) {
-        message.error('未找到要编辑的角色记录')
+        notification.error({
+          message: '未找到要编辑的角色记录',
+        })
         return false
       }
-
-      const response = await request.put<any, any>(
+      const response = await request.put<UpdateRoleDto, Role>(
         `/api/roles?id=${currentRecord.id}`,
         values,
       )
 
       if (response.code === 0) {
-        message.success('更新角色成功')
+        notification.success({
+          message: '更新角色成功',
+        })
         actionRef.current?.reload()
         return true
       } else {
-        message.error(response.message || '更新角色失败')
+        notification.error({
+          message: response.message || '更新角色失败',
+        })
         return false
       }
     } catch (error) {
@@ -156,11 +162,11 @@ export default function RolesPage() {
   }
 
   // 处理角色表单提交
-  const handleFinish = async (values: CreateRoleDto | UpdateRoleDto) => {
+  const handleFinish = async (values: Partial<Role>) => {
     if (currentRecord) {
-      return handleUpdate(values as UpdateRoleDto)
+      return handleUpdate(values)
     } else {
-      return handleCreate(values as CreateRoleDto)
+      return handleCreate(values)
     }
   }
 
@@ -168,7 +174,7 @@ export default function RolesPage() {
   const handleDelete = async (record: Role) => {
     modal.confirm({
       title: '确认删除',
-      content: `确定要删除角色 "${record.name}" 吗？删除后关联的用户将失去该角色的权限。`,
+      content: `确定要删除角色 "${record.name}(${record.code})" 吗？`,
       onOk: async () => {
         try {
           const response = await request.request<any, any>({
@@ -177,107 +183,59 @@ export default function RolesPage() {
           })
 
           if (response.code === 0) {
-            message.success('删除角色成功')
+            notification.success({
+              message: '删除角色成功',
+            })
             actionRef.current?.reload()
           } else {
-            message.error(response.message || '删除角色失败')
+            notification.error({
+              message: response.message || '删除角色失败',
+            })
           }
         } catch (error) {
-          message.error('删除角色失败')
+          notification.error({
+            message: '删除角色失败',
+          })
           console.error('删除角色失败:', error)
         }
       },
     })
   }
 
-  // 表格数据请求函数
   const tableRequest = async (params: any, sort: any, filter: any) => {
-    try {
-      // 构建查询参数
-      const queryParams = {
-        page: params.current || 1,
-        pageSize: params.pageSize || 10,
-        ...params,
-      }
-      delete queryParams.current // 删除current参数，使用page代替
-
-      // 发起请求获取角色列表数据
-      const response = await request.get<SearchRoleDto, Role>(
-        '/api/roles',
-        queryParams,
-      )
-
-      // 返回处理后的数据
-      return {
-        data: response.datas || [],
-        success: true,
-        total: response.total || 0,
-      }
-    } catch (error) {
-      console.error('获取角色列表失败:', error)
-      return {
-        data: [],
-        success: false,
-        total: 0,
-      }
+    const response = await request.get<GetRoleDto, Role>('/api/roles', {
+      ...params,
+      page: params.current,
+    })
+    return {
+      data: response.datas || [],
+      success: response.code === 0,
+      total: response.total,
     }
   }
 
-  // 获取权限列表
-  const [permissionOptions, setPermissionOptions] = useState<
-    { label: string; value: string; type: PermissionType }[]
-  >([])
-
-  React.useEffect(() => {
-    const fetchPermissions = async () => {
-      try {
-        const response = await request.get('/api/permissions', {
-          pageSize: 200,
-        })
-        if (response.code === 0 && response.datas) {
-          const options = response.datas.map((permission: any) => ({
-            label: `${permission.name} (${permission.code})`,
-            value: permission.id,
-            type: permission.type,
-          }))
-          setPermissionOptions(options)
-        }
-      } catch (error) {
-        console.error('获取权限列表失败:', error)
-      }
-    }
-
-    fetchPermissions()
-  }, [])
-
-  // 生成带分组的权限选项
-  const groupedPermissionOptions = React.useMemo(() => {
-    // 按权限类型分组
-    const groups = PERMISSION_TYPE_OPTIONS.map((typeConfig) => {
-      return {
-        label: typeConfig.label,
-        options: permissionOptions
-          .filter((p) => p.type === typeConfig.value)
-          .map((p) => ({ label: p.label, value: p.value })),
-      }
-    }).filter((group) => group.options.length > 0)
-
-    return groups
-  }, [permissionOptions])
+  const onExpand = (expandedKeys: Key[]) => {
+    setExpandedKeys(expandedKeys as string[])
+  }
 
   return (
     <PageContainer>
       <ProTable<Role>
-        columns={columns}
         rowKey="id"
         cardBordered
         actionRef={actionRef}
+        columns={columns}
         request={tableRequest}
+        search={{
+          defaultCollapsed: false,
+        }}
         pagination={{
-          pageSize: 10,
+          defaultPageSize: 10,
+          showSizeChanger: true,
         }}
         toolBarRender={() => [
           <Button
+            key="create"
             type="primary"
             onClick={() => {
               setOpenModal(true)
@@ -287,61 +245,101 @@ export default function RolesPage() {
             新建角色
           </Button>,
         ]}
-        search={{
-          defaultCollapsed: false,
-        }}
       />
-
-      {/* 编辑角色弹窗 */}
-      <ModalForm<CreateRoleDto | UpdateRoleDto>
+      <DrawerForm<Partial<Role>>
         title={currentRecord ? '编辑角色' : '创建角色'}
         open={openModal}
-        width={600}
-        onOpenChange={(visible) => {
+        width={500}
+        onOpenChange={async (visible) => {
           setOpenModal(visible)
           if (!visible) {
             setCurrentRecord(null)
           }
+          if (visible && currentRecord) {
+            let permissionIds: string[] = []
+            currentRecord.rolePermissions.forEach((item) => {
+              permissionIds.push(item.permissionId)
+            })
+            formRef.current?.setFieldsValue({
+              ...currentRecord,
+              permissionIds: permissionIds,
+            })
+          }
+          if (visible) {
+            const response = await request.get<{}, Permission>(
+              '/api/permissions',
+            )
+            const expandedKeys: string[] = []
+            const treeDatas = buildTree<Permission, TreeDataNode>(
+              response.datas || [],
+              null,
+              (item) => {
+                expandedKeys.push(item.id)
+                return {
+                  key: item.id,
+                  title: item.name + '(' + item.code + ')',
+                  children: [],
+                }
+              },
+            )
+            setTreeData(treeDatas)
+            setExpandedKeys(expandedKeys)
+          }
         }}
-        initialValues={
-          currentRecord
-            ? {
-                ...currentRecord,
-                permissions: currentRecord.permissions?.map(
-                  (p) => p.permission?.id,
-                ),
-              }
-            : undefined
-        }
+        formRef={formRef}
+        autoFocusFirstInput
+        drawerProps={{
+          destroyOnClose: true,
+        }}
         onFinish={handleFinish}
       >
         <ProFormText
           name="name"
           label="角色名称"
+          placeholder="请输入角色名称"
           rules={[{ required: true, message: '请输入角色名称' }]}
         />
-        <ProFormTextArea
-          name="description"
-          label="角色描述"
-          placeholder="请输入角色描述"
-        />
-        <ProFormSelect
+
+        <ProFormRadio.Group
           name="status"
           label="状态"
-          options={ROLE_STATUS_OPTIONS}
+          initialValue={RoleStatus.Enabled}
+          options={ROLE_STATUS_CONFIG}
           rules={[{ required: true, message: '请选择状态' }]}
         />
-        <ProFormSelect
-          name="permissions"
-          label="权限"
-          mode="multiple"
-          options={groupedPermissionOptions}
+
+        <ProFormTextArea
+          name="description"
+          label="描述"
+          placeholder="请输入角色描述"
           fieldProps={{
-            optionFilterProp: 'label',
-            showSearch: true,
+            rows: 4,
           }}
         />
-      </ModalForm>
+
+        <ProFormField
+          label="权限"
+          name="permissionIds"
+          valueType="text"
+          renderFormItem={(_, { value, onChange }) => (
+            <Tree
+              checkable
+              checkStrictly
+              treeData={treeData}
+              checkedKeys={value}
+              onCheck={(checked: { checked: Key[] } | Key[]) => {
+                if (Array.isArray(checked)) {
+                  onChange?.(checked as string[])
+                } else {
+                  onChange?.(checked.checked as string[])
+                }
+              }}
+              expandedKeys={expandedKeys}
+              onExpand={onExpand}
+            />
+          )}
+        />
+      </DrawerForm>
     </PageContainer>
   )
 }

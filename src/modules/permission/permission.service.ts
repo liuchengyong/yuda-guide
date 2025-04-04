@@ -2,13 +2,14 @@ import { prisma } from '@/lib/prisma'
 import { ResponseUtil } from '@/modules/http/response.util'
 import {
   CreatePermissionDto,
-  CreatePermissionDtoSchema,
   Permission,
+  UpdatePermissionDto,
 } from './permission.model'
 import { ResponseCode } from '../http/http.model'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
+import { PermissionSchema } from './permission.constant'
 
 /**
  * 权限服务类
@@ -19,45 +20,12 @@ export class PermissionService {
    * @param request 请求对象
    * @returns 权限列表响应
    */
-  static async getPermissions(request: NextRequest): Promise<NextResponse> {
+  static async getPermissions(): Promise<NextResponse> {
     try {
-      const { searchParams } = request.nextUrl
-      const searchPermissionDto = {
-        page: parseInt(searchParams.get('page') || '1'),
-        pageSize: parseInt(searchParams.get('pageSize') || '10'),
-        name: searchParams.get('name') || undefined,
-        code: searchParams.get('code') || undefined,
-        type: searchParams.has('type')
-          ? parseInt(searchParams.get('type') as string)
-          : undefined,
-      }
-
-      // 构建查询条件
-      const where: Prisma.PermissionWhereInput = {}
-      if (searchPermissionDto.name)
-        where.name = { contains: searchPermissionDto.name }
-      if (searchPermissionDto.code)
-        where.code = { contains: searchPermissionDto.code }
-      if (searchPermissionDto.type !== undefined)
-        where.type = searchPermissionDto.type
-
-      // 查询总数
-      const total = await prisma.permission.count({ where })
-
-      // 查询分页数据
       const permissions = await prisma.permission.findMany({
-        where,
-        skip: (searchPermissionDto.page - 1) * searchPermissionDto.pageSize,
-        take: searchPermissionDto.pageSize,
-        orderBy: { createdTime: 'desc' },
+        orderBy: [{ sort: 'desc' }],
       })
-
-      return ResponseUtil.successList(
-        permissions,
-        total,
-        searchPermissionDto.page,
-        searchPermissionDto.pageSize,
-      )
+      return ResponseUtil.successList(permissions, permissions.length, 1)
     } catch (error: any) {
       console.error('获取权限列表失败:', error)
       return ResponseUtil.serverError(error.message)
@@ -72,8 +40,8 @@ export class PermissionService {
   static async createPermission(request: NextRequest): Promise<NextResponse> {
     try {
       const createPermissionDto = (await request.json()) as CreatePermissionDto
-      const validData = validateSchema(
-        CreatePermissionDtoSchema,
+      const validData = validateSchema<Partial<Permission>>(
+        PermissionSchema,
         createPermissionDto,
       )
       if (validData.success) {
@@ -119,13 +87,6 @@ export class PermissionService {
         return ResponseUtil.badRequest('权限ID不能为空')
       }
 
-      const updateData = (await request.json()) as CreatePermissionDto
-      const validData = validateSchema(CreatePermissionDtoSchema, updateData)
-
-      if (!validData.success) {
-        return ResponseUtil.businessValidError(validData.errors)
-      }
-
       // 检查权限是否存在
       const existingPermission = await prisma.permission.findUnique({
         where: { id },
@@ -135,10 +96,20 @@ export class PermissionService {
         return ResponseUtil.businessError(ResponseCode.ERROR, '权限不存在')
       }
 
+      const updatePermissionDto = (await request.json()) as UpdatePermissionDto
+      const validData = validateSchema(PermissionSchema, updatePermissionDto)
+
+      if (!validData.success) {
+        return ResponseUtil.businessValidError(validData.errors)
+      }
+
       // 检查名称或代码是否与其他权限冲突
       const conflictPermission = await prisma.permission.findFirst({
         where: {
-          OR: [{ name: updateData.name }, { code: updateData.code }],
+          OR: [
+            { name: updatePermissionDto.name },
+            { code: updatePermissionDto.code },
+          ],
           NOT: { id },
         },
       })
@@ -153,7 +124,7 @@ export class PermissionService {
       // 更新权限
       const updatedPermission = await prisma.permission.update({
         where: { id },
-        data: updateData,
+        data: updatePermissionDto,
       })
 
       return ResponseUtil.success(updatedPermission)

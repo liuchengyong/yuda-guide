@@ -2,26 +2,29 @@
 import { PageContainer } from '@ant-design/pro-layout'
 import ProTable, { ActionType, ProColumns } from '@ant-design/pro-table'
 import {
-  ModalForm,
-  ProFormSelect,
+  DrawerForm,
+  ProFormDependency,
+  ProFormDigit,
+  ProFormInstance,
+  ProFormRadio,
   ProFormText,
   ProFormTextArea,
+  ProFormTreeSelect,
 } from '@ant-design/pro-form'
-import { App, Button, message, Modal, Space, Tag } from 'antd'
+import { App, Button, message, Space, Tag } from 'antd'
 import React, { useRef, useState } from 'react'
 import { request } from '../http/request'
-import {
-  CreatePermissionDto,
-  Permission,
-  SearchPermissionDto,
-} from './permission.model'
+import { Permission, PermissionType } from './permission.model'
 import { PERMISSION_TYPE_OPTIONS } from './permission.constant'
-
-export default function PermissionsPage() {
-  const { modal } = App.useApp()
-  const actionRef = useRef<ActionType>(null)
+import { buildTree } from '@/lib/utils'
+import { DataNode } from 'antd/lib/tree'
+export default function Page() {
+  const { modal, notification } = App.useApp()
+  const formRef = useRef<ProFormInstance<Partial<Permission>>>(null)
   const [currentRecord, setCurrentRecord] = useState<Permission | null>(null)
   const [openModal, setOpenModal] = useState(false)
+  const actionRef = useRef<ActionType>(null)
+  const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([])
 
   const columns: ProColumns<Permission>[] = [
     {
@@ -51,6 +54,18 @@ export default function PermissionsPage() {
       dataIndex: 'code',
     },
     {
+      title: '排序',
+      dataIndex: 'sort',
+    },
+    {
+      title: '路径',
+      dataIndex: 'path',
+    },
+    {
+      title: '图标',
+      dataIndex: 'icon',
+    },
+    {
       title: '描述',
       dataIndex: 'description',
       search: false,
@@ -78,8 +93,8 @@ export default function PermissionsPage() {
               type="link"
               size="small"
               onClick={() => {
-                setOpenModal(true)
                 setCurrentRecord(record)
+                setOpenModal(true)
               }}
             >
               编辑
@@ -97,20 +112,23 @@ export default function PermissionsPage() {
       },
     },
   ]
-
   // 处理创建权限
-  const handleCreate = async (values: CreatePermissionDto) => {
+  const handleCreate = async (values: Partial<Permission>) => {
     try {
-      const response = await request.post<CreatePermissionDto, Permission>(
+      const response = await request.post<Partial<Permission>, Permission>(
         '/api/permissions',
         values,
       )
       if (response.code === 0) {
-        message.success('创建权限成功')
+        notification.success({
+          message: '创建权限成功',
+        })
         actionRef.current?.reload()
         return true
       } else {
-        message.error(response.message || '创建权限失败')
+        notification.error({
+          message: response.message || '创建权限失败',
+        })
         return false
       }
     } catch (error) {
@@ -120,10 +138,12 @@ export default function PermissionsPage() {
   }
 
   // 处理更新权限
-  const handleUpdate = async (values: CreatePermissionDto) => {
+  const handleUpdate = async (values: Partial<Permission>) => {
     try {
       if (!currentRecord) {
-        message.error('未找到要编辑的权限记录')
+        notification.error({
+          message: '未找到要编辑的权限记录',
+        })
         return false
       }
 
@@ -133,11 +153,15 @@ export default function PermissionsPage() {
       )
 
       if (response.code === 0) {
-        message.success('更新权限成功')
+        notification.success({
+          message: '更新权限成功',
+        })
         actionRef.current?.reload()
         return true
       } else {
-        message.error(response.message || '更新权限失败')
+        notification.error({
+          message: response.message || '更新权限失败',
+        })
         return false
       }
     } catch (error) {
@@ -147,7 +171,7 @@ export default function PermissionsPage() {
   }
 
   // 处理权限表单提交
-  const handleFinish = async (values: CreatePermissionDto) => {
+  const handleFinish = async (values: Partial<Permission>) => {
     if (currentRecord) {
       return handleUpdate(values)
     } else {
@@ -159,7 +183,7 @@ export default function PermissionsPage() {
   const handleDelete = async (record: Permission) => {
     modal.confirm({
       title: '确认删除',
-      content: `确定要删除权限 "${record.name}" 吗？`,
+      content: `确定要删除权限 "${record.name}(${record.code})" 吗？`,
       onOk: async () => {
         try {
           const response = await request.request<any, any>({
@@ -168,81 +192,104 @@ export default function PermissionsPage() {
           })
 
           if (response.code === 0) {
-            message.success('删除权限成功')
+            notification.success({
+              message: '删除权限成功',
+            })
             actionRef.current?.reload()
           } else {
-            message.error(response.message || '删除权限失败')
+            notification.error({
+              message: response.message || '删除权限失败',
+            })
           }
         } catch (error) {
-          message.error('删除权限失败')
+          notification.error({
+            message: '删除权限失败',
+          })
           console.error('删除权限失败:', error)
         }
       },
     })
   }
 
-  // 表格数据请求函数
   const tableRequest = async (params: any, sort: any, filter: any) => {
-    try {
-      // 构建查询参数
-      const queryParams = {
-        page: params.current || 1,
-        pageSize: params.pageSize || 10,
-        ...params,
+    const response = await request.get<{}, Permission>('/api/permissions')
+    let rootId = null
+    let expandedRowKeys: string[] = []
+    response.datas = response.datas?.filter((item) => {
+      if (item.type === PermissionType.System) {
+        rootId = item.id
+        return false
       }
-      delete queryParams.current // 删除current参数，使用page代替
-
-      // 发起请求获取权限列表数据
-      const response = await request.get<SearchPermissionDto, Permission>(
-        '/api/permissions',
-        queryParams,
-      )
-
-      // 返回处理后的数据
-      return {
-        data: response.datas || [],
-        success: true,
-        total: response.total || 0,
-      }
-    } catch (error) {
-      console.error('获取权限列表失败:', error)
-      return {
-        data: [],
-        success: false,
-        total: 0,
-      }
+      return true
+    })
+    const treeTableDatas = buildTree<Permission, Permission>(
+      response.datas || [],
+      rootId,
+      (item) => {
+        expandedRowKeys.push(item.id)
+        return item
+      },
+    )
+    setExpandedRowKeys(expandedRowKeys)
+    return {
+      data: treeTableDatas,
+      success: response.code === 0,
+      total: response.total,
     }
+  }
+
+  const treeSelectRequest = async () => {
+    const response = await request.get<{}, Permission>('/api/permissions')
+    if (currentRecord) {
+      response.datas = response.datas?.filter(
+        (item) => item.id !== currentRecord?.id,
+      )
+    }
+    const treeSelectDatas = buildTree<Permission, DataNode>(
+      response.datas || [],
+      null,
+      (item) => {
+        return {
+          key: item.id,
+          value: item.id,
+          label: item.name,
+          children: [],
+        }
+      },
+    )
+    return treeSelectDatas
   }
 
   return (
     <PageContainer>
       <ProTable<Permission>
-        columns={columns}
         rowKey="id"
-        cardBordered
         actionRef={actionRef}
+        columns={columns}
         request={tableRequest}
-        pagination={{
-          pageSize: 5,
-          onChange: (page) => console.log(page),
+        pagination={false}
+        search={false}
+        expandable={{
+          defaultExpandAllRows: true,
+          expandedRowKeys: expandedRowKeys,
+          onExpandedRowsChange: (expandedRowKeys) => {
+            setExpandedRowKeys(expandedRowKeys as string[])
+          },
         }}
         toolBarRender={() => [
           <Button
+            key="create"
             type="primary"
             onClick={() => {
               setOpenModal(true)
+              setCurrentRecord(null)
             }}
           >
             新建权限
           </Button>,
         ]}
-        search={{
-          defaultCollapsed: false,
-        }}
       />
-
-      {/* 编辑权限弹窗 */}
-      <ModalForm<CreatePermissionDto>
+      <DrawerForm<Partial<Permission>>
         title={currentRecord ? '编辑权限' : '创建权限'}
         open={openModal}
         width={500}
@@ -251,32 +298,78 @@ export default function PermissionsPage() {
           if (!visible) {
             setCurrentRecord(null)
           }
+          if (visible) {
+            if (currentRecord) {
+              formRef.current?.setFieldsValue(currentRecord)
+            }
+          }
         }}
-        initialValues={currentRecord || undefined}
+        formRef={formRef}
         autoFocusFirstInput
-        modalProps={{
+        drawerProps={{
           destroyOnClose: true,
         }}
         onFinish={handleFinish}
       >
-        <ProFormSelect
+        <ProFormRadio.Group
           name="type"
           label="权限类型"
+          initialValue={PermissionType.Module}
           options={PERMISSION_TYPE_OPTIONS}
           rules={[{ required: true, message: '请选择权限类型' }]}
         />
+
+        <ProFormTreeSelect
+          name="parentId"
+          label="父级权限"
+          rules={[{ required: true, message: '请选择父级权限' }]}
+          request={treeSelectRequest}
+        />
+
         <ProFormText
           name="name"
           label="权限名称"
           placeholder="请输入权限名称"
           rules={[{ required: true, message: '请输入权限名称' }]}
         />
-        <ProFormText
-          name="code"
-          label="权限码"
-          placeholder="请输入权限码"
-          rules={[{ required: true, message: '请输入权限码' }]}
+        <ProFormDependency name={['type']}>
+          {({ type }) => {
+            const config = PERMISSION_TYPE_OPTIONS.find(
+              (option) => option.value === type,
+            )
+            return (
+              <ProFormText
+                name="code"
+                label="权限码"
+                placeholder={`请输入权限码,必须以${config?.startWith}开头`}
+                rules={[
+                  { required: true, message: '请输入权限码' },
+                  {
+                    pattern: new RegExp(`^${config?.startWith}.*`),
+                    message: `请输入以${config?.startWith}开头的权限码`,
+                  },
+                ]}
+              />
+            )
+          }}
+        </ProFormDependency>
+
+        <ProFormDigit
+          name="sort"
+          label="排序"
+          placeholder="请输入排序"
+          min={1}
+          max={200}
+          fieldProps={{
+            precision: 0,
+          }}
+          rules={[{ required: true, message: '请输入排序' }]}
         />
+
+        <ProFormText name="path" label="路径" placeholder="请输入路径" />
+
+        <ProFormText name="icon" label="图标" placeholder="请输入图标" />
+
         <ProFormTextArea
           name="description"
           label="描述"
@@ -285,7 +378,7 @@ export default function PermissionsPage() {
             rows: 4,
           }}
         />
-      </ModalForm>
+      </DrawerForm>
     </PageContainer>
   )
 }

@@ -1,16 +1,12 @@
+import { Permission } from './../../../node_modules/.pnpm/@prisma+client@6.5.0_prisma@6.5.0_typescript@5.8.2__typescript@5.8.2/node_modules/.prisma/client/index.d'
 import { prisma } from '@/lib/prisma'
 import { ResponseUtil } from '@/modules/http/response.util'
-import {
-  CreateRoleDto,
-  CreateRoleDtoSchema,
-  Role,
-  SearchRoleDto,
-  UpdateRoleDto,
-} from './role.model'
+import { CreateRoleDto, GetRoleDto, Role, UpdateRoleDto } from './role.model'
 import { ResponseCode } from '../http/http.model'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
+import { RoleSchema } from './role.constant'
 
 /**
  * 角色服务类
@@ -18,59 +14,51 @@ import { Prisma } from '@prisma/client'
 export class RoleService {
   /**
    * 获取角色列表
-   * @param request 请求对象
    * @returns 角色列表响应
    */
   static async getRoles(request: NextRequest): Promise<NextResponse> {
     try {
       const { searchParams } = request.nextUrl
-      const searchRoleDto: SearchRoleDto = {
-        page: parseInt(searchParams.get('page') || '1'),
-        pageSize: parseInt(searchParams.get('pageSize') || '10'),
-        name: searchParams.get('name') || undefined,
-        status: searchParams.has('status')
-          ? parseInt(searchParams.get('status') as string)
-          : undefined,
+      const getRoleDto = {
+        page: Number(searchParams.get('page')) || 1,
+        pageSize: Number(searchParams.get('pageSize')) || 20,
+        name: searchParams.get('name') || '',
+        id: searchParams.get('id') || '',
+        status: Number(searchParams.get('status')),
+      } as GetRoleDto
+      const where: Prisma.RoleWhereInput = {}
+      if (getRoleDto.id) {
+        where.id = {
+          equals: getRoleDto.id,
+        }
       }
 
-      // 构建查询条件
-      const where: Prisma.RoleWhereInput = {}
-      if (searchRoleDto.name) where.name = { contains: searchRoleDto.name }
-      if (searchRoleDto.status !== undefined)
-        where.status = searchRoleDto.status
+      if (getRoleDto.name) {
+        where.name = {
+          contains: getRoleDto.name,
+        }
+      }
 
-      // 查询总数
-      const total = await prisma.role.count({ where })
+      if (getRoleDto.status) {
+        where.status = {
+          equals: getRoleDto.status,
+        }
+      }
 
-      // 查询分页数据
-      const roles = await prisma.role.findMany({
+      const total = await prisma.role.count({
         where,
-        skip: (searchRoleDto.page - 1) * searchRoleDto.pageSize,
-        take: searchRoleDto.pageSize,
-        orderBy: { createdTime: 'desc' },
-        include: {
-          permissions: {
-            select: {
-              permission: {
-                select: {
-                  id: true,
-                  name: true,
-                  code: true,
-                  type: true,
-                  description: true,
-                },
-              },
-            },
-          },
-        },
       })
 
-      return ResponseUtil.successList(
-        roles,
-        total,
-        searchRoleDto.page,
-        searchRoleDto.pageSize,
-      )
+      const roles = await prisma.role.findMany({
+        skip: (getRoleDto.page - 1) * getRoleDto.pageSize,
+        take: getRoleDto.pageSize,
+        orderBy: [{ updatedTime: 'desc' }],
+        where,
+        include: {
+          rolePermissions: true,
+        },
+      })
+      return ResponseUtil.successList(roles, total, getRoleDto.page)
     } catch (error: any) {
       console.error('获取角色列表失败:', error)
       return ResponseUtil.serverError(error.message)
@@ -85,69 +73,38 @@ export class RoleService {
   static async createRole(request: NextRequest): Promise<NextResponse> {
     try {
       const createRoleDto = (await request.json()) as CreateRoleDto
-      const validData = validateSchema(CreateRoleDtoSchema, createRoleDto)
-
+      const validData = validateSchema<Partial<Role>>(RoleSchema, createRoleDto)
       if (validData.success) {
-        // 检查角色名是否已存在
-        const existingRole = await prisma.role.findUnique({
-          where: { name: createRoleDto.name },
+        const existingRole = await prisma.role.findFirst({
+          where: {
+            name: createRoleDto.name,
+          },
         })
-
         if (existingRole) {
           return ResponseUtil.businessError(
             ResponseCode.ROLE_EXISTING,
-            '角色名称已存在',
+            '角色已存在',
           )
         }
 
-        // 提取权限列表
-        const { permissions, ...roleData } = createRoleDto
-
-        // 创建角色
+        const permissionIds = createRoleDto.permissionIds || []
+        delete createRoleDto.permissionIds
         const newRole = await prisma.role.create({
-          data: roleData,
+          data: createRoleDto,
         })
-
-        // 如果提供了权限，则创建角色-权限关联
-        if (permissions && permissions.length > 0) {
-          await Promise.all(
-            permissions.map((permissionId) =>
-              prisma.rolePermission.create({
-                data: {
-                  roleId: newRole.id,
-                  permissionId,
-                },
-              }),
-            ),
-          )
+        if (permissionIds.length > 0) {
+          await prisma.rolePermission.createMany({
+            data: permissionIds.map((permissionId) => ({
+              permissionId,
+              roleId: newRole.id,
+            })),
+          })
         }
-
-        // 查询包含权限信息的完整角色数据
-        const roleWithPermissions = await prisma.role.findUnique({
-          where: { id: newRole.id },
-          include: {
-            permissions: {
-              select: {
-                permission: {
-                  select: {
-                    id: true,
-                    name: true,
-                    code: true,
-                    type: true,
-                    description: true,
-                  },
-                },
-              },
-            },
-          },
-        })
-
-        return ResponseUtil.success(roleWithPermissions)
+        return ResponseUtil.success(newRole)
       } else {
         return ResponseUtil.businessValidError(validData.errors)
       }
     } catch (error: any) {
-      console.error('创建角色失败:', error)
       return ResponseUtil.serverError(error.message)
     }
   }
@@ -159,24 +116,11 @@ export class RoleService {
    */
   static async updateRole(request: NextRequest): Promise<NextResponse> {
     try {
-      const { searchParams } = new URL(request.url)
+      const { searchParams } = request.nextUrl
       const id = searchParams.get('id')
 
       if (!id) {
         return ResponseUtil.badRequest('角色ID不能为空')
-      }
-
-      const updateData = (await request.json()) as UpdateRoleDto
-
-      // 验证数据
-      if (updateData.name) {
-        const validData = validateSchema(
-          CreateRoleDtoSchema.pick({ name: true }),
-          { name: updateData.name },
-        )
-        if (!validData.success) {
-          return ResponseUtil.businessValidError(validData.errors)
-        }
       }
 
       // 检查角色是否存在
@@ -188,72 +132,75 @@ export class RoleService {
         return ResponseUtil.businessError(ResponseCode.ERROR, '角色不存在')
       }
 
-      // 检查角色名是否与其他角色冲突
-      if (updateData.name && updateData.name !== existingRole.name) {
-        const conflictRole = await prisma.role.findUnique({
-          where: { name: updateData.name },
-        })
+      const updateRoleDto = (await request.json()) as UpdateRoleDto
+      const validData = validateSchema(RoleSchema, updateRoleDto)
 
-        if (conflictRole) {
-          return ResponseUtil.businessError(
-            ResponseCode.ROLE_EXISTING,
-            '角色名称已被使用',
-          )
-        }
+      if (!validData.success) {
+        return ResponseUtil.businessValidError(validData.errors)
       }
 
-      // 提取权限列表
-      const { permissions, ...roleData } = updateData
-
-      // 更新角色基本信息
-      const updatedRole = await prisma.role.update({
-        where: { id },
-        data: roleData,
-      })
-
-      // 如果提供了权限，则更新角色-权限关联
-      if (permissions !== undefined) {
-        // 先删除现有的权限关联
-        await prisma.rolePermission.deleteMany({
-          where: { roleId: id },
-        })
-
-        // 创建新的权限关联
-        if (permissions && permissions.length > 0) {
-          await Promise.all(
-            permissions.map((permissionId) =>
-              prisma.rolePermission.create({
-                data: {
-                  roleId: id,
-                  permissionId,
-                },
-              }),
-            ),
-          )
-        }
-      }
-
-      // 查询包含权限信息的完整角色数据
-      const roleWithPermissions = await prisma.role.findUnique({
-        where: { id },
-        include: {
-          permissions: {
-            select: {
-              permission: {
-                select: {
-                  id: true,
-                  name: true,
-                  code: true,
-                  type: true,
-                  description: true,
-                },
-              },
-            },
-          },
+      // 检查名称或代码是否与其他角色冲突
+      const conflictRole = await prisma.role.findFirst({
+        where: {
+          name: updateRoleDto.name,
+          NOT: { id },
         },
       })
 
-      return ResponseUtil.success(roleWithPermissions)
+      if (conflictRole) {
+        return ResponseUtil.businessError(
+          ResponseCode.ROLE_EXISTING,
+          '角色名称或角色编码已存在',
+        )
+      }
+
+      const permissionIds = updateRoleDto.permissionIds || []
+      const rolePermissions = await prisma.rolePermission.findMany({
+        where: {
+          roleId: id,
+        },
+      })
+      const deletePermissionIds = rolePermissions
+        .filter(
+          (rolePermission) =>
+            !permissionIds.includes(rolePermission.permissionId),
+        )
+        .map((rolePermission) => rolePermission.permissionId)
+
+      if (deletePermissionIds.length > 0) {
+        await prisma.rolePermission.deleteMany({
+          where: {
+            roleId: id,
+            permissionId: {
+              in: deletePermissionIds,
+            },
+          },
+        })
+      }
+
+      const createPermissionIds = permissionIds.filter(
+        (permissionId) =>
+          !rolePermissions.some(
+            (rolePermission) => rolePermission.permissionId === permissionId,
+          ),
+      )
+      if (createPermissionIds.length > 0) {
+        await prisma.rolePermission.createMany({
+          data: createPermissionIds.map((permissionId) => ({
+            permissionId,
+            roleId: id,
+          })),
+        })
+      }
+
+      delete updateRoleDto.permissionIds
+      // 更新角色
+      const updatedRole = await prisma.role.update({
+        where: { id },
+        data: updateRoleDto,
+      })
+
+      return ResponseUtil.success(updatedRole)
     } catch (error: any) {
       console.error('更新角色失败:', error)
       return ResponseUtil.serverError(error.message)
@@ -283,7 +230,7 @@ export class RoleService {
         return ResponseUtil.businessError(ResponseCode.ERROR, '角色不存在')
       }
 
-      // 删除角色（关联的角色-权限记录会通过级联删除自动删除）
+      // 删除角色（关联的角色-权限和用户-角色记录会通过级联删除自动删除）
       await prisma.role.delete({
         where: { id },
       })
@@ -291,6 +238,58 @@ export class RoleService {
       return ResponseUtil.success(null, '删除角色成功')
     } catch (error: any) {
       console.error('删除角色失败:', error)
+      return ResponseUtil.serverError(error.message)
+    }
+  }
+
+  /**
+   * 分配角色权限
+   * @param request 请求对象
+   * @returns 分配结果响应
+   */
+  static async assignPermissions(request: NextRequest): Promise<NextResponse> {
+    try {
+      const { searchParams } = new URL(request.url)
+      const roleId = searchParams.get('roleId')
+
+      if (!roleId) {
+        return ResponseUtil.badRequest('角色ID不能为空')
+      }
+
+      // 检查角色是否存在
+      const existingRole = await prisma.role.findUnique({
+        where: { id: roleId },
+      })
+
+      if (!existingRole) {
+        return ResponseUtil.businessError(ResponseCode.ERROR, '角色不存在')
+      }
+
+      const body = await request.json()
+      const permissionIds = body.permissionIds as string[]
+
+      if (!permissionIds || !Array.isArray(permissionIds)) {
+        return ResponseUtil.badRequest('权限ID列表不能为空')
+      }
+
+      // 先删除该角色的所有权限
+      await prisma.rolePermission.deleteMany({
+        where: { roleId },
+      })
+
+      // 添加新的权限
+      const rolePermissions = permissionIds.map((permissionId) => ({
+        roleId,
+        permissionId,
+      }))
+
+      await prisma.rolePermission.createMany({
+        data: rolePermissions,
+      })
+
+      return ResponseUtil.success(null, '分配权限成功')
+    } catch (error: any) {
+      console.error('分配角色权限失败:', error)
       return ResponseUtil.serverError(error.message)
     }
   }

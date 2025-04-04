@@ -1,12 +1,9 @@
-import { z } from 'zod'
-import { BaseEntity } from '@/types/base.entity'
-import { RolePermission } from '@/types/entitys/role'
-import { UserRole } from '@/types/entitys/user'
+import { Permission } from '@prisma/client'
 
 // 角色状态
 export enum RoleStatus {
-  Active = 1, // 正常
-  Disabled = 2, // 禁用
+  Disabled = 0,
+  Enabled = 1,
 }
 
 // 角色状态配置
@@ -16,39 +13,42 @@ export interface RoleStatusConfig {
   color: string
 }
 
+export interface RolePermission {
+  id: string
+  permissionId: string
+  roleId: string
+  createdTime: Date
+  updatedTime: Date
+  permission: Permission
+}
+
 // 角色实体
-export interface Role extends BaseEntity {
+export interface Role {
+  id: string
   name: string
-  description?: string
+  description: string
   status: RoleStatus
-  users?: UserRole[]
-  permissions?: RolePermission[]
+  createdTime: Date
+  updatedTime: Date
+  rolePermissions: RolePermission[]
+  // permissions: Permission[]
+  // users: []
+  permissionIds?: string[]
 }
 
-// 角色实体验证
-export const RoleSchema = z.object({
-  name: z
-    .string()
-    .min(1, '角色名称不能为空')
-    .max(100, '角色名称长度不能超过100'),
-  description: z.string().optional(),
-  status: z.nativeEnum(RoleStatus).default(RoleStatus.Active),
-})
-
-// 创建角色请求参数
-export type CreateRoleDto = Pick<Role, 'name' | 'description' | 'status'> & {
-  permissions?: string[] // 权限ID列表
-}
-
-// 更新角色请求参数
-export type UpdateRoleDto = Partial<CreateRoleDto>
-
-// 搜索角色请求参数
-export type SearchRoleDto = Partial<Pick<Role, 'name' | 'status'>> & {
+export type GetRoleDto = Partial<Role> & {
   page: number
   pageSize: number
 }
 
-export const CreateRoleDtoSchema = RoleSchema
+// 创建角色DTO
+export type CreateRoleDto = Pick<
+  Role,
+  'name' | 'description' | 'status' | 'permissionIds'
+>
 
-export const UpdateRoleDtoSchema = RoleSchema.partial()
+// 更新角色DTO
+export type UpdateRoleDto = Pick<
+  Role,
+  'name' | 'description' | 'status' | 'permissionIds'
+>

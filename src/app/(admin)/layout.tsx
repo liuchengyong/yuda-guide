@@ -1,25 +1,29 @@
 'use client'
 
 import React, { useState } from 'react'
-import { MenuDataItem } from '@ant-design/pro-layout'
+import {
+  getMenuData,
+  MenuDataItem,
+  ProBreadcrumb,
+} from '@ant-design/pro-layout'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 const menuData: MenuDataItem[] = [
   {
-    path: '/welcome',
-    name: 'Welcome',
-    icon: 'dashboard',
-  },
-  {
-    path: '/admin',
-    name: 'Admin',
+    name: '系统管理',
     children: [
       {
-        path: '/admin/sub-page1',
-        name: 'Sub Page 1',
+        path: '/users',
+        name: '用户管理',
       },
       {
-        path: '/admin/sub-page2',
-        name: 'Sub Page 2',
+        path: '/roles',
+        name: '角色管理',
+      },
+      {
+        path: '/permissions',
+        name: '权限管理',
       },
     ],
   },
@@ -32,12 +36,22 @@ const DynamicProLayout = dynamic(
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
+  const pathname = usePathname() // 获取当前路径
+  const router = useRouter() // 用于路由跳转
+
   return (
     <DynamicProLayout
-      title="yuda-guide"
+      title="yuda"
       logo="/logo.webp"
       layout="mix"
-      menuDataRender={() => menuData}
+      location={{
+        pathname,
+      }}
+      route={{
+        path: '/',
+        routes: menuData,
+      }}
+      menuItemRender={(item, dom) => <Link href={item.path || ''}>{dom}</Link>}
       collapsed={collapsed}
       onCollapse={setCollapsed}
     >

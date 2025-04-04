@@ -2,8 +2,8 @@ import { prisma } from '@/lib/prisma'
 import { ResponseUtil } from '@/modules/http/response.util'
 import {
   CreateUserDto,
-  CreateUserDtoSchema,
-  SearchUserDto,
+  LoginUserDto,
+  UpdatePasswordDto,
   UpdateUserDto,
   User,
 } from './user.model'
@@ -11,7 +11,9 @@ import { ResponseCode } from '../http/http.model'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
-import bcrypt from 'bcrypt'
+import { LoginSchema, UpdatePasswordSchema, UserSchema } from './user.constant'
+import * as bcrypt from 'bcrypt'
+import * as jwt from 'jsonwebtoken'
 
 /**
  * 用户服务类
@@ -24,62 +26,26 @@ export class UserService {
    */
   static async getUsers(request: NextRequest): Promise<NextResponse> {
     try {
-      const { searchParams } = request.nextUrl
-      const searchUserDto: SearchUserDto = {
-        page: parseInt(searchParams.get('page') || '1'),
-        pageSize: parseInt(searchParams.get('pageSize') || '10'),
-        account: searchParams.get('account') || undefined,
-        email: searchParams.get('email') || undefined,
-        status: searchParams.has('status')
-          ? parseInt(searchParams.get('status') as string)
-          : undefined,
-      }
-
-      // 构建查询条件
-      const where: Prisma.UserWhereInput = {}
-      if (searchUserDto.account)
-        where.account = { contains: searchUserDto.account }
-      if (searchUserDto.email) where.email = { contains: searchUserDto.email }
-      if (searchUserDto.status !== undefined)
-        where.status = searchUserDto.status
-
-      // 查询总数
-      const total = await prisma.user.count({ where })
-
-      // 查询分页数据
       const users = await prisma.user.findMany({
-        where,
-        skip: (searchUserDto.page - 1) * searchUserDto.pageSize,
-        take: searchUserDto.pageSize,
-        orderBy: { createdTime: 'desc' },
         select: {
           id: true,
-          account: true,
+          username: true,
           email: true,
+          phone: true,
+          nickname: true,
           avatar: true,
           status: true,
+          lastLoginTime: true,
           createdTime: true,
           updatedTime: true,
           roles: {
-            select: {
-              role: {
-                select: {
-                  id: true,
-                  name: true,
-                  description: true,
-                },
-              },
+            include: {
+              role: true,
             },
           },
         },
       })
-
-      return ResponseUtil.successList(
-        users,
-        total,
-        searchUserDto.page,
-        searchUserDto.pageSize,
-      )
+      return ResponseUtil.successList(users, users.length, 1)
     } catch (error: any) {
       console.error('获取用户列表失败:', error)
       return ResponseUtil.serverError(error.message)
@@ -94,85 +60,47 @@ export class UserService {
   static async createUser(request: NextRequest): Promise<NextResponse> {
     try {
       const createUserDto = (await request.json()) as CreateUserDto
-      const validData = validateSchema(CreateUserDtoSchema, createUserDto)
-
+      const validData = validateSchema<Partial<User>>(UserSchema, createUserDto)
       if (validData.success) {
-        // 检查用户名或邮箱是否已存在
-        const existingUser = await prisma.user.findFirst({
-          where: {
-            OR: [
-              { account: createUserDto.account },
-              { email: createUserDto.email },
-            ],
+        const where: Prisma.UserWhereInput = {}
+        where.OR = [
+          {
+            username: createUserDto.username,
           },
+          {
+            email: createUserDto.email,
+          },
+        ]
+        const existingUser = await prisma.user.findFirst({
+          where,
         })
-
         if (existingUser) {
           return ResponseUtil.businessError(
             ResponseCode.USER_EXISTING,
-            '用户账号或邮箱已存在',
+            '用户已存在',
           )
         }
 
-        // 对密码进行加密
-        const hashedPassword = await bcrypt.hash(createUserDto.password, 10)
+        // 密码加密
+        if (createUserDto.password) {
+          const salt = await bcrypt.genSalt(10)
+          createUserDto.password = await bcrypt.hash(
+            createUserDto.password,
+            salt,
+          )
+        }
 
-        // 提取角色列表
-        const { roles, ...userData } = createUserDto
-
-        // 创建用户
         const newUser = await prisma.user.create({
-          data: {
-            ...userData,
-            password: hashedPassword,
-          },
+          data: createUserDto,
         })
 
-        // 如果提供了角色，则创建用户-角色关联
-        if (roles && roles.length > 0) {
-          await Promise.all(
-            roles.map((roleId) =>
-              prisma.userRole.create({
-                data: {
-                  userId: newUser.id,
-                  roleId,
-                },
-              }),
-            ),
-          )
-        }
-
-        // 查询包含角色信息的完整用户数据（不包含密码）
-        const userWithRoles = await prisma.user.findUnique({
-          where: { id: newUser.id },
-          select: {
-            id: true,
-            account: true,
-            email: true,
-            avatar: true,
-            status: true,
-            createdTime: true,
-            updatedTime: true,
-            roles: {
-              select: {
-                role: {
-                  select: {
-                    id: true,
-                    name: true,
-                    description: true,
-                  },
-                },
-              },
-            },
-          },
-        })
-
-        return ResponseUtil.success(userWithRoles)
+        // 返回时去除密码
+        const { password, ...userWithoutPassword } = newUser
+        return ResponseUtil.success(userWithoutPassword)
       } else {
         return ResponseUtil.businessValidError(validData.errors)
       }
     } catch (error: any) {
-      console.error('创建用户失败:', error)
       return ResponseUtil.serverError(error.message)
     }
   }
@@ -191,8 +119,6 @@ export class UserService {
         return ResponseUtil.badRequest('用户ID不能为空')
       }
 
-      const updateData = (await request.json()) as UpdateUserDto
-
       // 检查用户是否存在
       const existingUser = await prisma.user.findUnique({
         where: { id },
@@ -202,14 +128,18 @@ export class UserService {
         return ResponseUtil.businessError(ResponseCode.ERROR, '用户不存在')
       }
 
-      // 检查账号和邮箱是否与其他用户冲突
-      if (updateData.account || updateData.email) {
+      const updateUserDto = (await request.json()) as UpdateUserDto
+      const validData = validateSchema(UserSchema, updateUserDto)
+
+      if (!validData.success) {
+        return ResponseUtil.businessValidError(validData.errors)
+      }
+
+      // 检查邮箱是否与其他用户冲突
+      if (updateUserDto.email) {
         const conflictUser = await prisma.user.findFirst({
           where: {
-            OR: [
-              updateData.account ? { account: updateData.account } : {},
-              updateData.email ? { email: updateData.email } : {},
-            ],
+            email: updateUserDto.email,
             NOT: { id },
           },
         })
@@ -217,75 +147,20 @@ export class UserService {
         if (conflictUser) {
           return ResponseUtil.businessError(
             ResponseCode.USER_EXISTING,
-            '账号或邮箱已被其他用户使用',
+            '邮箱已被使用',
           )
         }
       }
 
-      // 提取角色列表
-      const { roles, ...userData } = updateData
-
-      // 处理密码更新
-      let updatedUserData: any = { ...userData }
-
-      if ('password' in updateData && updateData.password) {
-        updatedUserData.password = await bcrypt.hash(updateData.password, 10)
-      }
-
-      // 更新用户基本信息
+      // 更新用户
       const updatedUser = await prisma.user.update({
         where: { id },
-        data: updatedUserData,
+        data: updateUserDto,
       })
 
-      // 如果提供了角色，则更新用户-角色关联
-      if (roles !== undefined) {
-        // 先删除现有的角色关联
-        await prisma.userRole.deleteMany({
-          where: { userId: id },
-        })
-
-        // 创建新的角色关联
-        if (roles && roles.length > 0) {
-          await Promise.all(
-            roles.map((roleId) =>
-              prisma.userRole.create({
-                data: {
-                  userId: id,
-                  roleId,
-                },
-              }),
-            ),
-          )
-        }
-      }
-
-      // 查询包含角色信息的完整用户数据（不包含密码）
-      const userWithRoles = await prisma.user.findUnique({
-        where: { id },
-        select: {
-          id: true,
-          account: true,
-          email: true,
-          avatar: true,
-          status: true,
-          createdTime: true,
-          updatedTime: true,
-          roles: {
-            select: {
-              role: {
-                select: {
-                  id: true,
-                  name: true,
-                  description: true,
-                },
-              },
-            },
-          },
-        },
-      })
-
-      return ResponseUtil.success(userWithRoles)
+      // 返回时去除密码
+      const { password, ...userWithoutPassword } = updatedUser
+      return ResponseUtil.success(userWithoutPassword)
     } catch (error: any) {
       console.error('更新用户失败:', error)
       return ResponseUtil.serverError(error.message)
@@ -323,6 +198,200 @@ export class UserService {
       return ResponseUtil.success(null, '删除用户成功')
     } catch (error: any) {
       console.error('删除用户失败:', error)
+      return ResponseUtil.serverError(error.message)
+    }
+  }
+
+  /**
+   * 用户登录
+   * @param request 请求对象
+   * @returns 登录结果响应
+   */
+  static async login(request: NextRequest): Promise<NextResponse> {
+    try {
+      const loginUserDto = (await request.json()) as LoginUserDto
+      const validData = validateSchema<LoginUserDto>(LoginSchema, loginUserDto)
+
+      if (!validData.success) {
+        return ResponseUtil.businessValidError(validData.errors)
+      }
+
+      // 查找用户
+      const user = await prisma.user.findFirst({
+        where: {
+          username: loginUserDto.username,
+        },
+        include: {
+          roles: {
+            include: {
+              role: {
+                include: {
+                  permissions: {
+                    include: {
+                      permission: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      })
+
+      if (!user) {
+        return ResponseUtil.businessError(
+          ResponseCode.ERROR,
+          '用户名或密码错误',
+        )
+      }
+
+      // 验证密码
+      const isPasswordValid = await bcrypt.compare(
+        loginUserDto.password,
+        user.password,
+      )
+
+      if (!isPasswordValid) {
+        return ResponseUtil.businessError(
+          ResponseCode.ERROR,
+          '用户名或密码错误',
+        )
+      }
+
+      // 检查用户状态
+      if (user.status === 0) {
+        return ResponseUtil.businessError(ResponseCode.ERROR, '用户已被禁用')
+      }
+
+      // 更新最后登录时间
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginTime: new Date() },
+      })
+
+      // 生成 JWT Token
+      const token = jwt.sign(
+        { id: user.id, username: user.username },
+        process.env.JWT_SECRET || 'yuda-secret',
+        { expiresIn: '1d' },
+      )
+
+      // 返回用户信息和token（不包含密码）
+      const { password, ...userWithoutPassword } = user
+      return ResponseUtil.success({
+        user: userWithoutPassword,
+        token,
+      })
+    } catch (error: any) {
+      console.error('用户登录失败:', error)
+      return ResponseUtil.serverError(error.message)
+    }
+  }
+
+  /**
+   * 修改密码
+   * @param request 请求对象
+   * @returns 修改结果响应
+   */
+  static async updatePassword(request: NextRequest): Promise<NextResponse> {
+    try {
+      const updatePasswordDto = (await request.json()) as UpdatePasswordDto
+      const validData = validateSchema<UpdatePasswordDto>(
+        UpdatePasswordSchema,
+        updatePasswordDto,
+      )
+
+      if (!validData.success) {
+        return ResponseUtil.businessValidError(validData.errors)
+      }
+
+      // 查找用户
+      const user = await prisma.user.findUnique({
+        where: { id: updatePasswordDto.id },
+      })
+
+      if (!user) {
+        return ResponseUtil.businessError(ResponseCode.ERROR, '用户不存在')
+      }
+
+      // 验证旧密码
+      const isPasswordValid = await bcrypt.compare(
+        updatePasswordDto.oldPassword,
+        user.password,
+      )
+
+      if (!isPasswordValid) {
+        return ResponseUtil.businessError(ResponseCode.ERROR, '旧密码不正确')
+      }
+
+      // 加密新密码
+      const salt = await bcrypt.genSalt(10)
+      const hashedPassword = await bcrypt.hash(
+        updatePasswordDto.newPassword,
+        salt,
+      )
+
+      // 更新密码
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword },
+      })
+
+      return ResponseUtil.success(null, '密码修改成功')
+    } catch (error: any) {
+      console.error('修改密码失败:', error)
+      return ResponseUtil.serverError(error.message)
+    }
+  }
+
+  /**
+   * 分配用户角色
+   * @param request 请求对象
+   * @returns 分配结果响应
+   */
+  static async assignRoles(request: NextRequest): Promise<NextResponse> {
+    try {
+      const { searchParams } = new URL(request.url)
+      const userId = searchParams.get('userId')
+
+      if (!userId) {
+        return ResponseUtil.badRequest('用户ID不能为空')
+      }
+
+      // 检查用户是否存在
+      const existingUser = await prisma.user.findUnique({
+        where: { id: userId },
+      })
+
+      if (!existingUser) {
+        return ResponseUtil.businessError(ResponseCode.ERROR, '用户不存在')
+      }
+
+      const body = await request.json()
+      const roleIds = body.roleIds as string[]
+
+      if (!roleIds || !Array.isArray(roleIds)) {
+        return ResponseUtil.badRequest('角色ID列表不能为空')
+      }
+
+      // 先删除该用户的所有角色
+      await prisma.userRole.deleteMany({
+        where: { userId },
+      })
+
+      // 添加新的角色
+      const userRoles = roleIds.map((roleId) => ({
+        userId,
+        roleId,
+      }))
+
+      await prisma.userRole.createMany({
+        data: userRoles,
+      })
+
+      return ResponseUtil.success(null, '分配角色成功')
+    } catch (error: any) {
+      console.error('分配用户角色失败:', error)
       return ResponseUtil.serverError(error.message)
     }
   }

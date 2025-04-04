@@ -1,5 +1,4 @@
 'use client'
-
 import React from 'react'
 import { App, ConfigProvider } from 'antd'
 import { StyleProvider } from '@ant-design/cssinjs'

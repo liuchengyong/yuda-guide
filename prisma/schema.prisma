@@ -24,8 +24,7 @@ model User {
   createdTime DateTime @default(now())
   updatedTime DateTime @updatedAt
 
-  // 关联
-  roles UserRole[]
+  UserRole UserRole[]
 }
 
 // 角色实体
@@ -37,9 +36,8 @@ model Role {
   createdTime DateTime @default(now())
   updatedTime DateTime @updatedAt
 
-  // 关联
-  users       UserRole[]
-  permissions RolePermission[]
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
 }
 
 // 用户-角色关联表
@@ -64,14 +62,17 @@ model Permission {
   name        String   @unique
   code        String   @unique
   description String?
+  sort        Int      @default(0) // 排序
+  path        String?
+  icon        String?
   createdTime DateTime @default(now())
   updatedTime DateTime @updatedAt
   parentId    String?  @db.Uuid
 
   // 关联
-  roles    RolePermission[]
-  parent   Permission?      @relation("PermissionTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children Permission[]     @relation("PermissionTree")
+  parent         Permission?      @relation("PermissionTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children       Permission[]     @relation("PermissionTree")
+  RolePermission RolePermission[]
 }
 
 // 角色-权限关联表
