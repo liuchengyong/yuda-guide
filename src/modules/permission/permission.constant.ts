@@ -8,25 +8,25 @@ export const PERMISSION_TYPE_OPTIONS: PermissionTypeConfig[] = [
   {
     label: '模块',
     value: PermissionType.Module,
-    color: 'green',
+    color: 'magenta',
     startWith: 'module',
   },
   {
     label: '菜单',
     value: PermissionType.Menu,
-    color: 'pink',
+    color: 'volcano',
     startWith: 'menu',
   },
   {
     label: '页面',
     value: PermissionType.Page,
-    color: 'blue',
+    color: 'orange',
     startWith: 'page',
   },
   {
     label: 'API',
     value: PermissionType.Api,
-    color: 'orange',
+    color: 'cyan',
     startWith: 'api',
   },
   {

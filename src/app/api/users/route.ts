@@ -14,17 +14,3 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   return await UserService.createUser(request)
 }
-
-/**
- * 处理PUT请求，更新用户
- */
-export async function PUT(request: NextRequest): Promise<NextResponse> {
-  return await UserService.updateUser(request)
-}
-
-/**
- * 处理DELETE请求，删除用户
- */
-export async function DELETE(request: NextRequest): Promise<NextResponse> {
-  return await UserService.deleteUser(request)
-}

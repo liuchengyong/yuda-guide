@@ -13,11 +13,17 @@ import { App, Avatar, Button, message, Space, Tag } from 'antd'
 import { UserOutlined } from '@ant-design/icons'
 import React, { useRef, useState } from 'react'
 import { request } from '../http/request'
-import { User, UserStatus } from './user.model'
+import {
+  CreateUserDto,
+  GetUserDto,
+  UpdateUserDto,
+  User,
+  UserStatus,
+} from './user.model'
 import { USER_STATUS_CONFIG } from './user.constant'
 import { UserRoleDrawer } from './user.role'
 
-export default function UsersPage() {
+export function UsersPage() {
   const { modal, notification } = App.useApp()
   const formRef = useRef<ProFormInstance<Partial<User>>>(null)
   const [currentRecord, setCurrentRecord] = useState<User | null>(null)
@@ -34,11 +40,7 @@ export default function UsersPage() {
     },
     {
       title: '用户名',
-      dataIndex: 'username',
-    },
-    {
-      title: '昵称',
-      dataIndex: 'nickname',
+      dataIndex: 'account',
     },
     {
       title: '头像',
@@ -51,10 +53,6 @@ export default function UsersPage() {
     {
       title: '邮箱',
       dataIndex: 'email',
-    },
-    {
-      title: '手机号',
-      dataIndex: 'phone',
     },
     {
       title: '状态',
@@ -71,8 +69,8 @@ export default function UsersPage() {
       },
     },
     {
-      title: '最后登录时间',
-      dataIndex: 'lastLoginTime',
+      title: '更新时间',
+      dataIndex: 'updatedTime',
       valueType: 'dateTime',
       search: false,
     },
@@ -88,7 +86,7 @@ export default function UsersPage() {
       search: false,
       render: (_, record) => {
         return (
-          <Space>
+          <Space direction="vertical">
             <Button
               type="link"
               size="small"
@@ -128,9 +126,9 @@ export default function UsersPage() {
   ]
 
   // 处理创建用户
-  const handleCreate = async (values: Partial<User>) => {
+  const handleCreate = async (values: CreateUserDto) => {
     try {
-      const response = await request.post<Partial<User>, User>(
+      const response = await request.post<CreateUserDto, User>(
         '/api/users',
         values,
       )
@@ -153,7 +151,7 @@ export default function UsersPage() {
   }
 
   // 处理更新用户
-  const handleUpdate = async (values: Partial<User>) => {
+  const handleUpdate = async (values: UpdateUserDto) => {
     try {
       if (!currentRecord) {
         notification.error({
@@ -162,8 +160,8 @@ export default function UsersPage() {
         return false
       }
 
-      const response = await request.put<any, any>(
-        `/api/users?id=${currentRecord.id}`,
+      const response = await request.put<UpdateUserDto, User>(
+        `/api/users/${currentRecord.id}`,
         values,
       )
 
@@ -188,9 +186,9 @@ export default function UsersPage() {
   // 处理用户表单提交
   const handleFinish = async (values: Partial<User>) => {
     if (currentRecord) {
-      return handleUpdate(values)
+      return handleUpdate(values as UpdateUserDto)
     } else {
-      return handleCreate(values)
+      return handleCreate(values as CreateUserDto)
     }
   }
 
@@ -255,7 +253,10 @@ export default function UsersPage() {
   }
 
   const tableRequest = async (params: any, sort: any, filter: any) => {
-    const response = await request.get<{}, User>('/api/users')
+    const response = await request.get<GetUserDto, User>('/api/users', {
+      ...params,
+      page: params.current || 1,
+    })
     return {
       data: response.datas || [],
       success: response.code === 0,
@@ -310,14 +311,13 @@ export default function UsersPage() {
         onFinish={handleFinish}
       >
         <ProFormText
-          name="username"
-          label="用户名"
-          placeholder="请输入用户名"
-          rules={[{ required: true, message: '请输入用户名' }]}
-          disabled={!!currentRecord} // 编辑时不允许修改用户名
+          name="account"
+          label="账号"
+          placeholder="请输入账号"
+          rules={[{ required: true, message: '请输入账号' }]}
         />
 
-        {!currentRecord && (
+        {currentRecord?.id ? null : (
           <ProFormText.Password
             name="password"
             label="密码"
@@ -325,8 +325,6 @@ export default function UsersPage() {
             rules={[{ required: true, message: '请输入密码' }]}
           />
         )}
-
-        <ProFormText name="nickname" label="昵称" placeholder="请输入昵称" />
 
         <ProFormText
           name="email"
@@ -336,18 +334,6 @@ export default function UsersPage() {
             {
               type: 'email',
               message: '请输入有效的邮箱地址',
-            },
-          ]}
-        />
-
-        <ProFormText
-          name="phone"
-          label="手机号"
-          placeholder="请输入手机号"
-          rules={[
-            {
-              pattern: /^1[3-9]\d{9}$/,
-              message: '请输入有效的手机号',
             },
           ]}
         />
@@ -366,18 +352,6 @@ export default function UsersPage() {
           rules={[{ required: true, message: '请选择状态' }]}
         />
       </DrawerForm>
-
-      {/* 角色抽屉组件 */}
-      <UserRoleDrawer
-        open={openRoleDrawer}
-        onClose={() => {
-          setOpenRoleDrawer(false)
-          setRoleUser(null)
-          // 关闭后刷新数据
-          actionRef.current?.reload()
-        }}
-        currentUser={roleUser}
-      />
     </PageContainer>
   )
 }

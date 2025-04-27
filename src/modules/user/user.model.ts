@@ -1,22 +1,5 @@
 // 导入其他模块的类型
-import { Role } from '../role/role.model'
-
-// 用户实体
-export interface User {
-  id: string
-  username: string
-  password: string
-  email: string
-  phone: string
-  nickname: string
-  avatar: string
-  status: number
-  lastLoginTime: Date
-  createdTime: Date
-  updatedTime: Date
-  roles: UserRole[]
-}
-
+import { Role, UserRole } from '../role/role.model'
 // 用户状态
 export enum UserStatus {
   Disabled = 0,
@@ -30,32 +13,33 @@ export interface UserStatusConfig {
   color: string
 }
 
+// 用户实体
+export interface User {
+  id: string
+  account: string
+  password: string
+  avatar: string
+  email: string
+  status: UserStatus
+  createdTime: Date
+  updatedTime: Date
+  userRoles: UserRole[]
+  roleIds: string[]
+}
+
 // 用户创建DTO
 export type CreateUserDto = Pick<
   User,
-  'username' | 'password' | 'email' | 'phone' | 'nickname' | 'avatar' | 'status'
+  'account' | 'password' | 'email' | 'avatar' | 'status' | 'roleIds'
 >
 
 // 用户更新DTO
 export type UpdateUserDto = Pick<
   User,
-  'id' | 'email' | 'phone' | 'nickname' | 'avatar' | 'status'
+  'account' | 'email' | 'avatar' | 'status' | 'roleIds'
 >
 
-// 用户登录DTO
-export type LoginUserDto = Pick<User, 'username' | 'password'>
-
-// 用户密码更新DTO
-export interface UpdatePasswordDto {
-  id: string
-  oldPassword: string
-  newPassword: string
-}
-
-// 用户角色关联
-export interface UserRole {
-  userId: string
-  roleId: string
-  user: User
-  role: Role
+export type GetUserDto = Partial<User> & {
+  page: number
+  pageSize: number
 }

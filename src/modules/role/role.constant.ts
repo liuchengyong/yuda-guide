@@ -8,7 +8,7 @@ export const ROLE_STATUS_CONFIG: RoleStatusConfig[] = [
   {
     label: '禁用',
     value: RoleStatus.Disabled,
-    color: 'danger',
+    color: 'default',
   },
   {
     label: '启用',

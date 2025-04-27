@@ -1,4 +1,5 @@
 import { Permission } from '@prisma/client'
+import { User } from '../user/user.model'
 
 // 角色状态
 export enum RoleStatus {
@@ -20,6 +21,17 @@ export interface RolePermission {
   createdTime: Date
   updatedTime: Date
   permission: Permission
+  role: Role
+}
+
+export interface UserRole {
+  id: string
+  userId: string
+  roleId: string
+  createdTime: Date
+  updatedTime: Date
+  user: User
+  role: Role
 }
 
 // 角色实体
@@ -30,9 +42,8 @@ export interface Role {
   status: RoleStatus
   createdTime: Date
   updatedTime: Date
-  rolePermissions: RolePermission[]
-  // permissions: Permission[]
-  // users: []
+  rolePermissions?: RolePermission[]
+  userRoles?: UserRole[]
   permissionIds?: string[]
 }
 

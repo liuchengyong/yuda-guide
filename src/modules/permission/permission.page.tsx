@@ -18,7 +18,7 @@ import { Permission, PermissionType } from './permission.model'
 import { PERMISSION_TYPE_OPTIONS } from './permission.constant'
 import { buildTree } from '@/lib/utils'
 import { DataNode } from 'antd/lib/tree'
-export default function Page() {
+export function PermissionsPage() {
   const { modal, notification } = App.useApp()
   const formRef = useRef<ProFormInstance<Partial<Permission>>>(null)
   const [currentRecord, setCurrentRecord] = useState<Permission | null>(null)

@@ -24,7 +24,7 @@ import { Permission } from '@prisma/client'
 import { buildTree, dfs } from '@/lib/utils'
 import { DataNode } from 'antd/es/tree'
 
-export default function RolesPage() {
+export function RolesPage() {
   const { modal, notification } = App.useApp()
   const formRef = useRef<ProFormInstance<Partial<Role>>>(null)
   const [currentRecord, setCurrentRecord] = useState<Role | null>(null)
