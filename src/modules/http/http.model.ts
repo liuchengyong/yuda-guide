@@ -30,10 +30,14 @@ export enum ResponseStatus {
 export enum ResponseCode {
   SUCCESS = 0,
   ERROR = 1,
+
   INVALID_PARAM = 1001,
+  RESOURCE_EXISTS = 1002, // 资源已存在
+
   BUSINESS_ERROR = 2001,
   SERVER_ERROR = 5001,
   UNAUTHORIZED = 4001,
+
   PERMISSION_EXISTING = 4002,
   USER_EXISTING = 4003,
   ROLE_EXISTING = 4004,

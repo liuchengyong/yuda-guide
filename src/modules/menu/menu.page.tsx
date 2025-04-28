@@ -1,61 +1,47 @@
 'use client'
 import { PageContainer } from '@ant-design/pro-layout'
 import ProTable, { ActionType, ProColumns } from '@ant-design/pro-table'
-import {
-  DrawerForm,
-  ProFormDependency,
-  ProFormDigit,
-  ProFormInstance,
-  ProFormRadio,
-  ProFormText,
-  ProFormTextArea,
-  ProFormTreeSelect,
-} from '@ant-design/pro-form'
-import { App, Button, message, Space, Tag } from 'antd'
+import { App, Button, Space, Tag } from 'antd'
 import React, { useRef, useState } from 'react'
 import { request } from '../http/request'
-import { Permission, PermissionType } from './menu.model'
-import { PERMISSION_TYPE_OPTIONS } from './menu.constant'
 import { buildTree } from '@/lib/utils'
 import { DataNode } from 'antd/lib/tree'
+import { Menu } from './menu.model'
+import { MENU_STATUS_OPTIONS, MENU_TYPE_OPTIONS } from './menu.constant'
+import { DrawerEdit } from './components/drawer'
 export function MenuPage() {
   const { modal, notification } = App.useApp()
-  const formRef = useRef<ProFormInstance<Partial<Permission>>>(null)
-  const [currentRecord, setCurrentRecord] = useState<Permission | null>(null)
+  const [currentRecord, setCurrentRecord] = useState<Menu | null>(null)
   const [openModal, setOpenModal] = useState(false)
   const actionRef = useRef<ActionType>(null)
-  const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([])
+  const [expandedRowKeys, setExpandedRowKeys] = useState<number[]>([])
 
-  const columns: ProColumns<Permission>[] = [
+  const columns: ProColumns<Menu>[] = [
     {
-      title: 'ID',
-      dataIndex: 'id',
+      title: '菜单名称',
+      dataIndex: 'name',
     },
     {
       title: '类型',
       dataIndex: 'type',
       valueType: 'select',
       fieldProps: {
-        options: PERMISSION_TYPE_OPTIONS,
+        options: MENU_TYPE_OPTIONS,
       },
       render: (value, record) => {
-        const config = PERMISSION_TYPE_OPTIONS.find(
+        const config = MENU_TYPE_OPTIONS.find(
           (option) => option.value === record.type,
         )
         return <Tag color={config?.color}>{value}</Tag>
       },
     },
     {
-      title: '名称',
-      dataIndex: 'name',
+      title: '排序',
+      dataIndex: 'sort',
     },
     {
       title: '权限码',
       dataIndex: 'code',
-    },
-    {
-      title: '排序',
-      dataIndex: 'sort',
     },
     {
       title: '路径',
@@ -66,21 +52,18 @@ export function MenuPage() {
       dataIndex: 'icon',
     },
     {
-      title: '描述',
-      dataIndex: 'description',
-      search: false,
-    },
-    {
-      title: '创建时间',
-      dataIndex: 'createdTime',
-      valueType: 'dateTime',
-      search: false,
-    },
-    {
-      title: '更新时间',
-      dataIndex: 'updatedTime',
-      valueType: 'dateTime',
-      search: false,
+      title: '状态',
+      dataIndex: 'status',
+      valueType: 'select',
+      fieldProps: {
+        options: MENU_STATUS_OPTIONS,
+      },
+      render: (value, record) => {
+        const config = MENU_STATUS_OPTIONS.find(
+          (option) => option.value === record.status,
+        )
+        return <Tag color={config?.color}>{value}</Tag>
+      },
     },
     {
       title: '操作',
@@ -112,117 +95,44 @@ export function MenuPage() {
       },
     },
   ]
-  // 处理创建权限
-  const handleCreate = async (values: Partial<Permission>) => {
-    try {
-      const response = await request.post<Partial<Permission>, Permission>(
-        '/api/permissions',
-        values,
-      )
-      if (response.code === 0) {
-        notification.success({
-          message: '创建权限成功',
-        })
-        actionRef.current?.reload()
-        return true
-      } else {
-        notification.error({
-          message: response.message || '创建权限失败',
-        })
-        return false
-      }
-    } catch (error) {
-      console.error('创建权限失败:', error)
-      return false
-    }
-  }
-
-  // 处理更新权限
-  const handleUpdate = async (values: Partial<Permission>) => {
-    try {
-      if (!currentRecord) {
-        notification.error({
-          message: '未找到要编辑的权限记录',
-        })
-        return false
-      }
-
-      const response = await request.put<any, any>(
-        `/api/permissions?id=${currentRecord.id}`,
-        values,
-      )
-
-      if (response.code === 0) {
-        notification.success({
-          message: '更新权限成功',
-        })
-        actionRef.current?.reload()
-        return true
-      } else {
-        notification.error({
-          message: response.message || '更新权限失败',
-        })
-        return false
-      }
-    } catch (error) {
-      console.error('更新权限失败:', error)
-      return false
-    }
-  }
-
-  // 处理权限表单提交
-  const handleFinish = async (values: Partial<Permission>) => {
-    if (currentRecord) {
-      return handleUpdate(values)
-    } else {
-      return handleCreate(values)
-    }
-  }
 
   // 处理删除权限
-  const handleDelete = async (record: Permission) => {
+  const handleDelete = async (record: Menu) => {
     modal.confirm({
       title: '确认删除',
-      content: `确定要删除权限 "${record.name}(${record.code})" 吗？`,
+      content: `确定要删除菜单 "${record.name}(${record.code})" 吗？`,
       onOk: async () => {
         try {
           const response = await request.request<any, any>({
-            url: `/api/permissions?id=${record.id}`,
+            url: `/api/menu?id=${record.id}`,
             method: 'DELETE',
           })
 
           if (response.code === 0) {
             notification.success({
-              message: '删除权限成功',
+              message: '删除菜单成功',
             })
             actionRef.current?.reload()
           } else {
             notification.error({
-              message: response.message || '删除权限失败',
+              message: response.message || '删除菜单失败',
             })
           }
         } catch (error) {
           notification.error({
-            message: '删除权限失败',
+            message: '删除菜单失败',
           })
-          console.error('删除权限失败:', error)
+          console.error('删除菜单失败:', error)
         }
       },
     })
   }
 
   const tableRequest = async (params: any, sort: any, filter: any) => {
-    const response = await request.get<{}, Permission>('/api/permissions')
+    const response = await request.get<{}, Menu>('/api/menu')
     let rootId = null
-    let expandedRowKeys: string[] = []
-    response.datas = response.datas?.filter((item) => {
-      if (item.type === PermissionType.System) {
-        rootId = item.id
-        return false
-      }
-      return true
-    })
-    const treeTableDatas = buildTree<Permission, Permission>(
+    let expandedRowKeys: number[] = []
+    let treeTableDatas = buildTree<Menu, Menu>(
       response.datas || [],
       rootId,
       (item) => {
@@ -231,6 +141,9 @@ export function MenuPage() {
       },
     )
     setExpandedRowKeys(expandedRowKeys)
+    if (treeTableDatas.length > 0) {
+      treeTableDatas = treeTableDatas[0].children || []
+    }
     return {
       data: treeTableDatas,
       success: response.code === 0,
@@ -238,31 +151,9 @@ export function MenuPage() {
     }
   }
 
-  const treeSelectRequest = async () => {
-    const response = await request.get<{}, Permission>('/api/permissions')
-    if (currentRecord) {
-      response.datas = response.datas?.filter(
-        (item) => item.id !== currentRecord?.id,
-      )
-    }
-    const treeSelectDatas = buildTree<Permission, DataNode>(
-      response.datas || [],
-      null,
-      (item) => {
-        return {
-          key: item.id,
-          value: item.id,
-          label: item.name,
-          children: [],
-        }
-      },
-    )
-    return treeSelectDatas
-  }
-
   return (
     <PageContainer>
-      <ProTable<Permission>
+      <ProTable<Menu>
         rowKey="id"
         actionRef={actionRef}
         columns={columns}
@@ -273,7 +164,7 @@ export function MenuPage() {
           defaultExpandAllRows: true,
           expandedRowKeys: expandedRowKeys,
           onExpandedRowsChange: (expandedRowKeys) => {
-            setExpandedRowKeys(expandedRowKeys as string[])
+            setExpandedRowKeys(expandedRowKeys as number[])
           },
         }}
         toolBarRender={() => [
@@ -285,100 +176,20 @@ export function MenuPage() {
               setCurrentRecord(null)
             }}
           >
-            新建权限
+            新建菜单
           </Button>,
         ]}
       />
-      <DrawerForm<Partial<Permission>>
-        title={currentRecord ? '编辑权限' : '创建权限'}
+      <DrawerEdit
+        currentRecord={currentRecord}
         open={openModal}
-        width={500}
         onOpenChange={(visible) => {
           setOpenModal(visible)
           if (!visible) {
             setCurrentRecord(null)
           }
-          if (visible) {
-            if (currentRecord) {
-              formRef.current?.setFieldsValue(currentRecord)
-            }
-          }
         }}
-        formRef={formRef}
-        autoFocusFirstInput
-        drawerProps={{
-          destroyOnClose: true,
-        }}
-        onFinish={handleFinish}
-      >
-        <ProFormRadio.Group
-          name="type"
-          label="权限类型"
-          initialValue={PermissionType.Module}
-          options={PERMISSION_TYPE_OPTIONS}
-          rules={[{ required: true, message: '请选择权限类型' }]}
-        />
-
-        <ProFormTreeSelect
-          name="parentId"
-          label="父级权限"
-          rules={[{ required: true, message: '请选择父级权限' }]}
-          request={treeSelectRequest}
-        />
-
-        <ProFormText
-          name="name"
-          label="权限名称"
-          placeholder="请输入权限名称"
-          rules={[{ required: true, message: '请输入权限名称' }]}
-        />
-        <ProFormDependency name={['type']}>
-          {({ type }) => {
-            const config = PERMISSION_TYPE_OPTIONS.find(
-              (option) => option.value === type,
-            )
-            return (
-              <ProFormText
-                name="code"
-                label="权限码"
-                placeholder={`请输入权限码,必须以${config?.startWith}开头`}
-                rules={[
-                  { required: true, message: '请输入权限码' },
-                  {
-                    pattern: new RegExp(`^${config?.startWith}.*`),
-                    message: `请输入以${config?.startWith}开头的权限码`,
-                  },
-                ]}
-              />
-            )
-          }}
-        </ProFormDependency>
-
-        <ProFormDigit
-          name="sort"
-          label="排序"
-          placeholder="请输入排序"
-          min={1}
-          max={200}
-          fieldProps={{
-            precision: 0,
-          }}
-          rules={[{ required: true, message: '请输入排序' }]}
-        />
-
-        <ProFormText name="path" label="路径" placeholder="请输入路径" />
-
-        <ProFormText name="icon" label="图标" placeholder="请输入图标" />
-
-        <ProFormTextArea
-          name="description"
-          label="描述"
-          placeholder="请输入权限描述"
-          fieldProps={{
-            rows: 4,
-          }}
-        />
-      </DrawerForm>
+      ></DrawerEdit>
     </PageContainer>
   )
 }

@@ -11,9 +11,13 @@ export function dfs<T extends { children?: T[] }>(
 }
 
 export function buildTree<
-  T extends { parentId: string | null; sort: number; id: string },
+  T extends {
+    parentId: string | number | null
+    sort: number
+    id: string | number
+  },
   K extends { children?: K[] },
->(datas: T[], parentId: string | null, callback: (item: T) => K): K[] {
+>(datas: T[], parentId: string | number | null, callback: (item: T) => K): K[] {
   return datas
     .filter((item) => item.parentId === parentId)
     .sort((a, b) => a.sort - b.sort)

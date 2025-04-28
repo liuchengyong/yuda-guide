@@ -5,12 +5,15 @@ export interface Menu {
   type: MenuType
   icon: string
   code: string
-  parentId: number
+  parentId: number | null
   sort: number
   status: MenuStatus
   visible: boolean
   createdTime: Date
   updatedTime: Date
+
+  children?: Menu[]
+  parent?: Menu
 }
 
 export enum MenuType {
@@ -19,7 +22,34 @@ export enum MenuType {
   BUTTON = 3, // 按钮
 }
 
+export interface MenuTypeOptions {
+  label: string
+  value: MenuType
+  color: string
+}
+
 export enum MenuStatus {
   OPEN = 1, // 开启
   CLOSE = 2, // 关闭
 }
+
+export interface MenuStatusOptions {
+  label: string
+  value: MenuStatus
+  color: string
+}
+
+export type CreateMenuDto = Pick<
+  Menu,
+  | 'name'
+  | 'path'
+  | 'type'
+  | 'icon'
+  | 'code'
+  | 'parentId'
+  | 'sort'
+  | 'status'
+  | 'visible'
+>
+
+export type MenuTreeVo = Pick<Menu, 'id' | 'name' | 'parentId'>

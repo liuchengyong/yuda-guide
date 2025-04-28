@@ -166,17 +166,17 @@ model SiteTag {
 
 model Menu {
   id          Int      @id @default(autoincrement())
-  name        String
+  name        String   @unique
   path        String
   type        Int
   icon        String
   code        String
-  parentId    Int
+  parentId    Int?
   sort        Int
   status      Int
   visible     Boolean
   createdTime DateTime @default(now())
   updatedTime DateTime @updatedAt
   parent      Menu?    @relation("MenuTree", fields: [parentId], references: [id])
-  childs      Menu[]   @relation("MenuTree")
+  children    Menu[]   @relation("MenuTree")
 }

@@ -1,71 +1,57 @@
 import { z } from 'zod'
-import { PermissionType, PermissionTypeConfig } from './menu.model'
+import {
+  MenuStatus,
+  MenuStatusOptions,
+  MenuType,
+  MenuTypeOptions,
+} from './menu.model'
 
-/**
- * 权限类型
- */
-export const PERMISSION_TYPE_OPTIONS: PermissionTypeConfig[] = [
+export const MENU_TYPE_OPTIONS: MenuTypeOptions[] = [
   {
-    label: '模块',
-    value: PermissionType.Module,
+    label: '目录',
+    value: MenuType.DIR,
     color: 'magenta',
-    startWith: 'module',
   },
   {
     label: '菜单',
-    value: PermissionType.Menu,
+    value: MenuType.MENU,
     color: 'volcano',
-    startWith: 'menu',
   },
   {
-    label: '页面',
-    value: PermissionType.Page,
+    label: '按钮',
+    value: MenuType.BUTTON,
     color: 'orange',
-    startWith: 'page',
-  },
-  {
-    label: 'API',
-    value: PermissionType.Api,
-    color: 'cyan',
-    startWith: 'api',
-  },
-  {
-    label: '元素',
-    value: PermissionType.Element,
-    color: 'purple',
-    startWith: 'element',
   },
 ]
 
-/**
- * 权限验证
- */
-export const PermissionSchema = z
-  .object({
-    type: z.nativeEnum(PermissionType),
-    name: z
-      .string()
-      .min(1, '权限名不能为空')
-      .max(100, '权限名不能超过100个字符'),
-    code: z
-      .string()
-      .min(1, '权限编码不能为空')
-      .max(300, '权限编码不能超过300个字符'),
-    sort: z.number().min(0, '排序值不能小于0').max(200, '排序值不能超过200'),
-    description: z.string().max(200, '描述不能超过200个字符').optional(),
-    path: z.string().max(200, '路径不能超过200个字符').optional(),
-    icon: z.string().max(200, '图标不能超过200个字符').optional(),
-    parentId: z.string().min(1, '父级ID不能为空'),
-  })
-  .superRefine((data, ctx) => {
-    let config = PERMISSION_TYPE_OPTIONS.find(
-      (item) => item.value === data.type,
-    )
-    if (config && !data.code.startsWith(config.startWith)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `权限编码格式错误,必须以${config.startWith}开头`,
-        path: ['code'],
-      })
-    }
-  })
+export const MENU_STATUS_OPTIONS: MenuStatusOptions[] = [
+  {
+    label: '开启',
+    value: MenuStatus.OPEN,
+    color: 'magenta',
+  },
+  {
+    label: '关闭',
+    value: MenuStatus.CLOSE,
+    color: '',
+  },
+]
+
+export const MenuSchema = z.object({
+  name: z.string().min(1, '菜单名不能为空').max(20, '菜单名不能超过20个字符'),
+  path: z.string().max(200, '路径不能超过200个字符').optional(),
+  type: z.nativeEnum(MenuType),
+  icon: z.string().max(200, '图标路径不能超过200个字符').optional(),
+  code: z
+    .string()
+    .min(1, '权限编码不能为空')
+    .max(300, '权限编码不能超过300个字符'),
+  parentId: z.number(),
+  sort: z
+    .number()
+    .min(0, '排序值不能小于0')
+    .max(10000, '排序值不能超过10000')
+    .optional(),
+  status: z.nativeEnum(MenuStatus),
+  visible: z.boolean(),
+})

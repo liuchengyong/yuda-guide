@@ -2,10 +2,22 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Next.js: debug",
+      "name": "dev",
       "type": "node-terminal",
       "request": "launch",
       "command": "pnpm run dev"
-    }
+    },
+    {
+      "name": "db generate",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm run prisma:generate"
+    },
+    {
+      "name": "db push",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "pnpm run prisma:push"
+    },
   ]
 }
