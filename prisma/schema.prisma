@@ -163,3 +163,20 @@ model SiteTag {
 
   @@unique([siteId, tagId])
 }
+
+model Menu {
+  id          Int      @id @default(autoincrement())
+  name        String
+  path        String
+  type        Int
+  icon        String
+  code        String
+  parentId    Int
+  sort        Int
+  status      Int
+  visible     Boolean
+  createdTime DateTime @default(now())
+  updatedTime DateTime @updatedAt
+  parent      Menu?    @relation("MenuTree", fields: [parentId], references: [id])
+  childs      Menu[]   @relation("MenuTree")
+}

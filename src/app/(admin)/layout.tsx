@@ -14,16 +14,8 @@ const menuData: MenuDataItem[] = [
     name: '系统管理',
     children: [
       {
-        path: '/users',
-        name: '用户管理',
-      },
-      {
-        path: '/roles',
-        name: '角色管理',
-      },
-      {
-        path: '/permissions',
-        name: '权限管理',
+        path: 'system/menu',
+        name: '菜单管理',
       },
     ],
   },
