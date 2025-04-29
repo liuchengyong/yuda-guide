@@ -12,15 +12,15 @@ export function dfs<T extends { children?: T[] }>(
 
 export function buildTree<
   T extends {
-    parentId: string | number | null
+    parentId: string | null
     sort: number
-    id: string | number
+    id: string
   },
   K extends { children?: K[] },
->(datas: T[], parentId: string | number | null, callback: (item: T) => K): K[] {
+>(datas: T[], parentId: string | null, callback: (item: T) => K): K[] {
   return datas
     .filter((item) => item.parentId === parentId)
-    .sort((a, b) => a.sort - b.sort)
+    .sort((a, b) => b.sort - a.sort)
     .map((item) => {
       return {
         ...callback(item),

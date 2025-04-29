@@ -45,8 +45,9 @@ export const MenuSchema = z.object({
   code: z
     .string()
     .min(1, '权限编码不能为空')
-    .max(300, '权限编码不能超过300个字符'),
-  parentId: z.number(),
+    .max(300, '权限编码不能超过300个字符')
+    .optional(),
+  parentId: z.string(),
   sort: z
     .number()
     .min(0, '排序值不能小于0')

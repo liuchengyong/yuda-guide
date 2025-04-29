@@ -6,3 +6,5 @@
 -- desc Permission;Category
 
 -- select * from "RolePermission";
+
+DELETE FROM "Permission" WHERE name = '2';

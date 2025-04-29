@@ -5,16 +5,16 @@ import { App, Button, Space, Tag } from 'antd'
 import React, { useRef, useState } from 'react'
 import { request } from '../http/request'
 import { buildTree } from '@/lib/utils'
-import { DataNode } from 'antd/lib/tree'
-import { Menu } from './menu.model'
+import { Menu, SearchMenuDto } from './menu.model'
 import { MENU_STATUS_OPTIONS, MENU_TYPE_OPTIONS } from './menu.constant'
 import { DrawerEdit } from './components/drawer'
+import Icon from '@/components/Icon'
 export function MenuPage() {
   const { modal, notification } = App.useApp()
   const [currentRecord, setCurrentRecord] = useState<Menu | null>(null)
   const [openModal, setOpenModal] = useState(false)
   const actionRef = useRef<ActionType>(null)
-  const [expandedRowKeys, setExpandedRowKeys] = useState<number[]>([])
+  const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([])
 
   const columns: ProColumns<Menu>[] = [
     {
@@ -38,6 +38,7 @@ export function MenuPage() {
     {
       title: '排序',
       dataIndex: 'sort',
+      search: false,
     },
     {
       title: '权限码',
@@ -50,6 +51,10 @@ export function MenuPage() {
     {
       title: '图标',
       dataIndex: 'icon',
+      search: false,
+      render: (value: any, record) => {
+        return <Icon value={value}></Icon>
+      },
     },
     {
       title: '状态',
@@ -103,11 +108,7 @@ export function MenuPage() {
       content: `确定要删除菜单 "${record.name}(${record.code})" 吗？`,
       onOk: async () => {
         try {
-          const response = await request.request<any, any>({
-            url: `/api/menu?id=${record.id}`,
-            method: 'DELETE',
-          })
-
+          const response = await request.delete(`/api/menu/${record.id}`)
           if (response.code === 0) {
             notification.success({
               message: '删除菜单成功',
@@ -129,23 +130,40 @@ export function MenuPage() {
   }
 
   const tableRequest = async (params: any, sort: any, filter: any) => {
-    const response = await request.get<{}, Menu>('/api/menu')
-    let rootId = null
-    let expandedRowKeys: number[] = []
-    let treeTableDatas = buildTree<Menu, Menu>(
-      response.datas || [],
-      rootId,
-      (item) => {
-        expandedRowKeys.push(item.id)
-        return item
-      },
+    const response = await request.get<SearchMenuDto, Menu>(
+      '/api/menu/list',
+      params,
     )
+    let datas: Menu[] = []
+    let expandedRowKeys: string[] = []
+    let rootMenus: Menu[] = []
+    response.datas?.forEach((item) => {
+      if (!response.datas?.some((item1) => item.parentId == item1.id)) {
+        rootMenus.push(item)
+      }
+    })
+    rootMenus.forEach((item) => {
+      const treeTableDatas = buildTree<Menu, Menu>(
+        response.datas || [],
+        item.id,
+        (item) => {
+          expandedRowKeys.push(item.id)
+          return item
+        },
+      )
+      if (!item.parentId) {
+        datas = datas.concat(treeTableDatas || [])
+      } else {
+        item.children = treeTableDatas
+        expandedRowKeys.push(item.id)
+        datas.push(item)
+      }
+    })
+
     setExpandedRowKeys(expandedRowKeys)
-    if (treeTableDatas.length > 0) {
-      treeTableDatas = treeTableDatas[0].children || []
-    }
+
     return {
-      data: treeTableDatas,
+      data: datas,
       success: response.code === 0,
       total: response.total,
     }
@@ -159,12 +177,11 @@ export function MenuPage() {
         columns={columns}
         request={tableRequest}
         pagination={false}
-        search={false}
         expandable={{
           defaultExpandAllRows: true,
           expandedRowKeys: expandedRowKeys,
           onExpandedRowsChange: (expandedRowKeys) => {
-            setExpandedRowKeys(expandedRowKeys as number[])
+            setExpandedRowKeys(expandedRowKeys as string[])
           },
         }}
         toolBarRender={() => [
@@ -183,6 +200,7 @@ export function MenuPage() {
       <DrawerEdit
         currentRecord={currentRecord}
         open={openModal}
+        actionRef={actionRef}
         onOpenChange={(visible) => {
           setOpenModal(visible)
           if (!visible) {

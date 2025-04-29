@@ -11,25 +11,32 @@ import {
   ProFormTextArea,
   ProFormTreeSelect,
 } from '@ant-design/pro-form'
-import { App, Button, Space, Tag } from 'antd'
+import { App, Button, Form, Space, Tag } from 'antd'
 import React, { useEffect, useRef, useState } from 'react'
 import { buildTree } from '@/lib/utils'
 import { DataNode } from 'antd/lib/tree'
-import { Menu, MenuStatus, MenuType } from '../menu.model'
+import { Menu, MenuStatus, MenuTreeVo, MenuType } from '../menu.model'
 import { request } from '@/modules/http/request'
 import { MENU_STATUS_OPTIONS, MENU_TYPE_OPTIONS } from '../menu.constant'
+import IconPicker from '@/components/IconPicker'
 
 export interface DrawerEditProps {
   currentRecord: Menu | null
   open: boolean
   onOpenChange: (visible: boolean) => void
+  actionRef: React.RefObject<ActionType | null>
 }
 
 export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
-  const { currentRecord, open, onOpenChange } = props
+  const { currentRecord, open, onOpenChange, actionRef } = props
   const { modal, notification } = App.useApp()
   const formRef = useRef<ProFormInstance<Partial<Menu>>>(null)
 
+  useEffect(() => {
+    if (open && currentRecord) {
+      formRef.current?.setFieldsValue(currentRecord)
+    }
+  }, [open, currentRecord])
   // 处理创建菜单
   const handleCreate = async (values: Partial<Menu>) => {
     try {
@@ -41,6 +48,7 @@ export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
         notification.success({
           message: '创建菜单成功',
         })
+        actionRef.current?.reload()
         return true
       } else {
         notification.error({
@@ -57,15 +65,8 @@ export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
   // 处理更新菜单
   const handleUpdate = async (values: Partial<Menu>) => {
     try {
-      if (!currentRecord) {
-        notification.error({
-          message: '未找到要编辑的菜单记录',
-        })
-        return false
-      }
-
-      const response = await request.put<any, any>(
-        `/api/permissions?id=${currentRecord.id}`,
+      const response = await request.put<Partial<Menu>, Menu>(
+        `/api/menu/${currentRecord?.id}`,
         values,
       )
 
@@ -96,48 +97,14 @@ export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
     }
   }
 
-  // 处理删除菜单
-  const handleDelete = async (record: Menu) => {
-    modal.confirm({
-      title: '确认删除',
-      content: `确定要删除菜单 "${record.name}(${record.code})" 吗？`,
-      onOk: async () => {
-        try {
-          const response = await request.request<any, any>({
-            url: `/api/permissions?id=${record.id}`,
-            method: 'DELETE',
-          })
-
-          if (response.code === 0) {
-            notification.success({
-              message: '删除菜单成功',
-            })
-            actionRef.current?.reload()
-          } else {
-            notification.error({
-              message: response.message || '删除菜单失败',
-            })
-          }
-        } catch (error) {
-          notification.error({
-            message: '删除菜单失败',
-          })
-          console.error('删除菜单失败:', error)
-        }
-      },
-    })
-  }
-
   const treeSelectRequest = async () => {
-    const response = await request.get<{}, Menu>('/api/menu', {
-      methed: 'tree-select',
-    })
+    const response = await request.get<{}, MenuTreeVo>('/api/menu/simpleList')
     if (currentRecord) {
       response.datas = response.datas?.filter(
         (item) => item.id !== currentRecord?.id,
       )
     }
-    const treeSelectDatas = buildTree<Menu, DataNode>(
+    const treeSelectDatas = buildTree<MenuTreeVo, DataNode>(
       response.datas || [],
       null,
       (item) => {
@@ -193,20 +160,18 @@ export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
         options={MENU_TYPE_OPTIONS}
         rules={[{ required: true, message: '请选择菜单类型' }]}
       />
-      <ProFormText name="icon" label="图标" placeholder="请输入图标" />
-      <ProFormText name="path" label="路径" placeholder="请输入路径" />
+      <ProFormText name="code" label="权限码" placeholder={`请输入权限码`} />
+      {/* <ProFormText name="icon" label="图标" placeholder="请输入图标" /> */}
 
-      <ProFormText
-        name="code"
-        label="权限码"
-        placeholder={`请输入权限码`}
-        rules={[{ required: true, message: '请输入权限码' }]}
-      />
+      <Form.Item name="icon" label="图标">
+        <IconPicker />
+      </Form.Item>
+      <ProFormText name="path" label="路径" placeholder="请输入路径" />
       <ProFormDigit
         name="sort"
         label="排序"
         placeholder="请输入排序"
-        min={1}
+        min={0}
         max={10000}
         fieldProps={{
           precision: 0,

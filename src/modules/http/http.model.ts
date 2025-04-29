@@ -31,8 +31,9 @@ export enum ResponseCode {
   SUCCESS = 0,
   ERROR = 1,
 
-  INVALID_PARAM = 1001,
+  INVALID_PARAM = 1001, // 参数错误
   RESOURCE_EXISTS = 1002, // 资源已存在
+  RESOURCE_NOT_EXISTS = 1003, // 资源不存在
 
   BUSINESS_ERROR = 2001,
   SERVER_ERROR = 5001,

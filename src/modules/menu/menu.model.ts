@@ -1,17 +1,8 @@
-export interface Menu {
-  id: number
-  name: string
-  path: string
-  type: MenuType
-  icon: string
-  code: string
-  parentId: number | null
-  sort: number
-  status: MenuStatus
-  visible: boolean
-  createdTime: Date
-  updatedTime: Date
+import { Menu as MenuClient } from '@prisma/client'
 
+export interface Menu extends MenuClient {
+  type: MenuType
+  status: MenuStatus
   children?: Menu[]
   parent?: Menu
 }
@@ -52,4 +43,22 @@ export type CreateMenuDto = Pick<
   | 'visible'
 >
 
-export type MenuTreeVo = Pick<Menu, 'id' | 'name' | 'parentId'>
+export type UpdateMenuDto = Pick<
+  Menu,
+  | 'id'
+  | 'name'
+  | 'path'
+  | 'type'
+  | 'icon'
+  | 'code'
+  | 'parentId'
+  | 'sort'
+  | 'status'
+  | 'visible'
+>
+
+export type SearchMenuDto = Partial<
+  Pick<Menu, 'name' | 'path' | 'type' | 'code' | 'status'>
+>
+
+export type MenuTreeVo = Pick<Menu, 'id' | 'name' | 'parentId' | 'sort'>
