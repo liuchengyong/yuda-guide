@@ -9,12 +9,18 @@ import { Menu, SearchMenuDto } from './menu.model'
 import { MENU_STATUS_OPTIONS, MENU_TYPE_OPTIONS } from './menu.constant'
 import { DrawerEdit } from './components/drawer'
 import Icon from '@/components/Icon'
+import { PlusOutlined, SwapOutlined } from '@ant-design/icons'
 export function MenuPage() {
   const { modal, notification } = App.useApp()
   const [currentRecord, setCurrentRecord] = useState<Menu | null>(null)
   const [openModal, setOpenModal] = useState(false)
   const actionRef = useRef<ActionType>(null)
   const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([])
+  const pageInfoRef = useRef<{
+    tableData: Menu[]
+  }>({
+    tableData: [],
+  })
 
   const columns: ProColumns<Menu>[] = [
     {
@@ -134,8 +140,8 @@ export function MenuPage() {
       '/api/menu/list',
       params,
     )
+    pageInfoRef.current.tableData = response.datas || []
     let datas: Menu[] = []
-    let expandedRowKeys: string[] = []
     let rootMenus: Menu[] = []
     response.datas?.forEach((item) => {
       if (!response.datas?.some((item1) => item.parentId == item1.id)) {
@@ -147,7 +153,6 @@ export function MenuPage() {
         response.datas || [],
         item.id,
         (item) => {
-          expandedRowKeys.push(item.id)
           return item
         },
       )
@@ -155,12 +160,9 @@ export function MenuPage() {
         datas = datas.concat(treeTableDatas || [])
       } else {
         item.children = treeTableDatas
-        expandedRowKeys.push(item.id)
         datas.push(item)
       }
     })
-
-    setExpandedRowKeys(expandedRowKeys)
 
     return {
       data: datas,
@@ -188,12 +190,36 @@ export function MenuPage() {
           <Button
             key="create"
             type="primary"
+            icon={<PlusOutlined />}
             onClick={() => {
-              setOpenModal(true)
               setCurrentRecord(null)
+              setOpenModal(true)
             }}
           >
             新建菜单
+          </Button>,
+          <Button
+            key="open"
+            icon={<SwapOutlined rotate={90} />}
+            onClick={() => {
+              if (expandedRowKeys.length > 0) {
+                setExpandedRowKeys([])
+              } else {
+                let rowKeys: string[] = []
+                pageInfoRef.current.tableData.forEach((item) => {
+                  if (
+                    pageInfoRef.current.tableData.some(
+                      (item1) => item1.parentId == item.id,
+                    )
+                  ) {
+                    rowKeys.push(item.id)
+                  }
+                })
+                setExpandedRowKeys(rowKeys)
+              }
+            }}
+          >
+            {expandedRowKeys.length > 0 ? '全部折叠' : '全部展开'}
           </Button>,
         ]}
       />
