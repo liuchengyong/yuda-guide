@@ -1,48 +1,29 @@
 import { prisma } from '@/lib/prisma'
 import { ResponseUtil } from '@/modules/http/response.util'
-import {
-  CreateMenuDto,
-  Menu,
-  MenuTreeVo,
-  SearchMenuDto,
-  UpdateMenuDto,
-} from './menu.model'
 import { ResponseCode } from '../http/http.model'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateSchema } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
-import { MenuSchema } from './menu.constant'
-export class MenuService {
+import {
+  CreateDeptDto,
+  Dept,
+  DeptTreeVo,
+  SearchDeptDto,
+  UpdateDeptDto,
+} from './dept.model'
+import { DeptSchema } from './dept.constant'
+export class DeptService {
   static async getList(request: NextRequest): Promise<NextResponse> {
     try {
       const { searchParams } = request.nextUrl
-      //'name' | 'path' | 'type' | 'code' | 'status'
       const searchDto = {
         name: searchParams.get('name') || '',
-        path: searchParams.get('path') || '',
-        type: Number(searchParams.get('type')),
-        code: searchParams.get('code') || '',
         status: Number(searchParams.get('status')),
-      } as SearchMenuDto
-      const where: Prisma.MenuWhereInput = {}
+      } as SearchDeptDto
+      const where: Prisma.DeptWhereInput = {}
       if (searchDto.name) {
         where.name = {
           contains: searchDto.name,
-        }
-      }
-      if (searchDto.path) {
-        where.path = {
-          contains: searchDto.path,
-        }
-      }
-      if (searchDto.type) {
-        where.type = {
-          equals: searchDto.type,
-        }
-      }
-      if (searchDto.code) {
-        where.code = {
-          contains: searchDto.code,
         }
       }
       if (searchDto.status) {
@@ -51,20 +32,20 @@ export class MenuService {
         }
       }
 
-      const datas = await prisma.menu.findMany({
+      const datas = await prisma.dept.findMany({
         orderBy: [{ sort: 'desc' }, { createdTime: 'desc' }],
         where,
       })
-      return ResponseUtil.successList<Menu>(datas, datas.length, 1)
+      return ResponseUtil.successList<Dept>(datas, datas.length, 1)
     } catch (error: any) {
-      console.error('获取全部菜单:', error)
+      console.error('获取全部部门:', error)
       return ResponseUtil.serverError(error.message)
     }
   }
 
   static async getSimpleList(): Promise<NextResponse> {
     try {
-      const datas: MenuTreeVo[] = await prisma.menu.findMany({
+      const datas: DeptTreeVo[] = await prisma.dept.findMany({
         orderBy: [{ sort: 'desc' }, { createdTime: 'desc' }],
         select: {
           id: true,
@@ -73,30 +54,30 @@ export class MenuService {
           sort: true,
         },
       })
-      return ResponseUtil.successList<MenuTreeVo>(datas, datas.length, 1)
+      return ResponseUtil.successList<DeptTreeVo>(datas, datas.length, 1)
     } catch (error: any) {
-      console.error('获取全部菜单:', error)
+      console.error('获取全部部门:', error)
       return ResponseUtil.serverError(error.message)
     }
   }
 
   static async create(request: NextRequest): Promise<NextResponse> {
     try {
-      const createDto = (await request.json()) as CreateMenuDto
-      const validData = validateSchema<Partial<Menu>>(MenuSchema, createDto)
+      const createDto = (await request.json()) as CreateDeptDto
+      const validData = validateSchema<Partial<Dept>>(DeptSchema, createDto)
       if (validData.success) {
-        const existing = await prisma.menu.findFirst({
+        const existing = await prisma.dept.findFirst({
           where: {
-            OR: [{ name: createDto.name }, { code: createDto.code }],
+            name: createDto.name,
           },
         })
         if (existing) {
           return ResponseUtil.businessError(
             ResponseCode.RESOURCE_EXISTS,
-            '菜单已存在',
+            '部门已存在',
           )
         }
-        const create = await prisma.menu.create({
+        const create = await prisma.dept.create({
           data: createDto,
         })
         return ResponseUtil.success(create)
@@ -114,27 +95,27 @@ export class MenuService {
       if (!id) {
         return ResponseUtil.businessError(
           ResponseCode.INVALID_PARAM,
-          '菜单ID不能为空',
+          '部门ID不能为空',
         )
       }
-      const existing = await prisma.menu.findUnique({
+      const existing = await prisma.dept.findUnique({
         where: { id },
       })
       if (!existing) {
         return ResponseUtil.businessError(
           ResponseCode.RESOURCE_EXISTS,
-          '菜单不存在',
+          '部门不存在',
         )
       }
-      const updateDto = (await request.json()) as UpdateMenuDto
-      const validData = validateSchema<Partial<Menu>>(MenuSchema, updateDto)
+      const updateDto = (await request.json()) as UpdateDeptDto
+      const validData = validateSchema<Partial<Dept>>(DeptSchema, updateDto)
       if (!validData.success) {
         return ResponseUtil.businessValidError(validData.errors)
       }
 
-      const conflict = await prisma.menu.findFirst({
+      const conflict = await prisma.dept.findFirst({
         where: {
-          OR: [{ name: updateDto.name }, { code: updateDto.code }],
+          name: updateDto.name,
           NOT: { id },
         },
       })
@@ -142,10 +123,10 @@ export class MenuService {
       if (conflict) {
         return ResponseUtil.businessError(
           ResponseCode.RESOURCE_EXISTS,
-          '菜单名称或权限码已存在',
+          '部门名称或权限码已存在',
         )
       }
-      const updated = await prisma.menu.update({
+      const updated = await prisma.dept.update({
         where: { id },
         data: updateDto,
       })
@@ -161,23 +142,23 @@ export class MenuService {
       if (!id) {
         return ResponseUtil.businessError(
           ResponseCode.INVALID_PARAM,
-          '菜单ID不能为空',
+          '部门ID不能为空',
         )
       }
-      const existing = await prisma.menu.findUnique({
+      const existing = await prisma.dept.findUnique({
         where: { id },
       })
       if (!existing) {
         return ResponseUtil.businessError(
           ResponseCode.RESOURCE_EXISTS,
-          '菜单不存在',
+          '部门不存在',
         )
       }
-      await prisma.menu.delete({
+      await prisma.dept.delete({
         where: { id },
       })
 
-      return ResponseUtil.success(null, '删除菜单成功')
+      return ResponseUtil.success(null, '删除部门成功')
     } catch (error: any) {
       console.log(error)
       return ResponseUtil.serverError(error.message)

@@ -193,3 +193,18 @@ model Post {
   createdTime DateTime @default(now())
   updatedTime DateTime @updatedAt
 }
+
+// 系统管理-部门
+model Dept {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  parentId    String?
+  sort        Int      @default(0)
+  status      Int
+  email       String?
+  mobile      String?
+  createdTime DateTime @default(now())
+  updatedTime DateTime @updatedAt
+  parent      Dept?    @relation("DeptTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Dept[]   @relation("DeptTree")
+}

@@ -22,9 +22,10 @@ export function buildTree<
     .filter((item) => item.parentId === parentId)
     .sort((a, b) => b.sort - a.sort)
     .map((item) => {
+      let list = buildTree(datas, item.id, callback)
       return {
         ...callback(item),
-        children: buildTree(datas, item.id, callback),
+        children: list.length > 0 ? list : undefined,
       } as K
     })
 }

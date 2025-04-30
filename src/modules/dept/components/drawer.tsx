@@ -6,21 +6,19 @@ import {
   ProFormDigit,
   ProFormInstance,
   ProFormRadio,
-  ProFormSwitch,
   ProFormText,
   ProFormTreeSelect,
 } from '@ant-design/pro-form'
-import { App, Form } from 'antd'
-import React, { useEffect, useRef } from 'react'
+import { App } from 'antd'
+import React, { useEffect, useRef, useState } from 'react'
 import { buildTree } from '@/lib/utils'
 import { DataNode } from 'antd/lib/tree'
-import { Menu, MenuStatus, MenuTreeVo, MenuType } from '../menu.model'
 import { request } from '@/modules/http/request'
-import { MENU_STATUS_OPTIONS, MENU_TYPE_OPTIONS } from '../menu.constant'
-import IconPicker from '@/components/IconPicker'
+import { Dept, DeptStatus, DeptTreeVo } from '../dept.model'
+import { DEPT_STATUS_OPTIONS } from '../dept.constant'
 
 export interface DrawerEditProps {
-  currentRecord: Menu | null
+  currentRecord: Dept | null
   open: boolean
   onOpenChange: (visible: boolean) => void
   actionRef: React.RefObject<ActionType | null>
@@ -29,7 +27,7 @@ export interface DrawerEditProps {
 export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
   const { currentRecord, open, onOpenChange, actionRef } = props
   const { notification } = App.useApp()
-  const formRef = useRef<ProFormInstance<Partial<Menu>>>(null)
+  const formRef = useRef<ProFormInstance<Partial<Dept>>>(null)
 
   useEffect(() => {
     if (open && currentRecord) {
@@ -37,58 +35,58 @@ export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
     }
   }, [open, currentRecord])
   // 处理创建菜单
-  const handleCreate = async (values: Partial<Menu>) => {
+  const handleCreate = async (values: Partial<Dept>) => {
     try {
-      const response = await request.post<Partial<Menu>, Menu>(
-        '/api/menu',
+      const response = await request.post<Partial<Dept>, Dept>(
+        '/api/dept',
         values,
       )
       if (response.code === 0) {
         notification.success({
-          message: '创建菜单成功',
+          message: '创建部门成功',
         })
         actionRef.current?.reload()
         return true
       } else {
         notification.error({
-          message: response.message || '创建菜单失败',
+          message: response.message || '创建部门失败',
         })
         return false
       }
     } catch (error) {
-      console.error('创建菜单失败:', error)
+      console.error('创建部门失败:', error)
       return false
     }
   }
 
-  // 处理更新菜单
-  const handleUpdate = async (values: Partial<Menu>) => {
+  // 处理更新部门
+  const handleUpdate = async (values: Partial<Dept>) => {
     try {
-      const response = await request.put<Partial<Menu>, Menu>(
-        `/api/menu/${currentRecord?.id}`,
+      const response = await request.put<Partial<Dept>, Dept>(
+        `/api/dept/${currentRecord?.id}`,
         values,
       )
 
       if (response.code === 0) {
         notification.success({
-          message: '更新菜单成功',
+          message: '更新部门成功',
         })
         actionRef.current?.reload()
         return true
       } else {
         notification.error({
-          message: response.message || '更新菜单失败',
+          message: response.message || '更新部门失败',
         })
         return false
       }
     } catch (error) {
-      console.error('更新菜单失败:', error)
+      console.error('更新部门失败:', error)
       return false
     }
   }
 
-  // 处理菜单表单提交
-  const handleFinish = async (values: Partial<Menu>) => {
+  // 处理部门表单提交
+  const handleFinish = async (values: Partial<Dept>) => {
     if (currentRecord) {
       return handleUpdate(values)
     } else {
@@ -97,13 +95,13 @@ export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
   }
 
   const treeSelectRequest = async () => {
-    const response = await request.get<{}, MenuTreeVo>('/api/menu/simpleList')
+    const response = await request.get<{}, DeptTreeVo>('/api/dept/simpleList')
     if (currentRecord) {
       response.datas = response.datas?.filter(
         (item) => item.id !== currentRecord?.id,
       )
     }
-    const treeSelectDatas = buildTree<MenuTreeVo, DataNode>(
+    const treeSelectDatas = buildTree<DeptTreeVo, DataNode>(
       response.datas || [],
       null,
       (item) => {
@@ -118,8 +116,8 @@ export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
   }
 
   return (
-    <DrawerForm<Partial<Menu>>
-      title={currentRecord ? '编辑菜单' : '创建菜单'}
+    <DrawerForm<Partial<Dept>>
+      title={currentRecord ? '编辑部门' : '创建部门'}
       open={open}
       width={500}
       onOpenChange={onOpenChange}
@@ -132,37 +130,25 @@ export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
     >
       <ProFormTreeSelect
         name="parentId"
-        label="父级菜单"
-        rules={[{ required: true, message: '请选择父级菜单' }]}
+        label="上级部门"
+        rules={[{ required: true, message: '请选择父级部门' }]}
         request={treeSelectRequest}
       />
 
       <ProFormText
         name="name"
-        label="菜单名称"
-        placeholder="请输入菜单名称"
+        label="部门名称"
+        placeholder="请输入部门名称"
         rules={[
-          { required: true, message: '请输入菜单名称' },
+          { required: true, message: '请输入部门名称' },
           {
             type: 'string',
             min: 1,
             max: 20,
-            message: '菜单名不能超过20个字符',
+            message: '部门名不能超过20个字符',
           },
         ]}
       />
-      <ProFormRadio.Group
-        name="type"
-        label="菜单类型"
-        initialValue={MenuType.DIR}
-        options={MENU_TYPE_OPTIONS}
-        rules={[{ required: true, message: '请选择菜单类型' }]}
-      />
-      <ProFormText name="code" label="权限码" placeholder={`请输入权限码`} />
-      <Form.Item name="icon" label="图标">
-        <IconPicker />
-      </Form.Item>
-      <ProFormText name="path" label="路径" placeholder="请输入路径" />
       <ProFormDigit
         name="sort"
         label="排序"
@@ -178,12 +164,40 @@ export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
       <ProFormRadio.Group
         name="status"
         label="菜单状态"
-        initialValue={MenuStatus.OPEN}
-        options={MENU_STATUS_OPTIONS}
+        initialValue={DeptStatus.OPEN}
+        options={DEPT_STATUS_OPTIONS}
         rules={[{ required: true, message: '请选择菜单状态' }]}
       />
 
-      <ProFormSwitch name="visible" initialValue={true} label="显示状态" />
+      <ProFormText
+        name="email"
+        label="邮箱"
+        placeholder="请输入部门邮箱"
+        rules={[
+          {
+            type: 'email',
+            message: '邮箱格式不正确',
+          },
+          {
+            type: 'string',
+            min: 5,
+            max: 100,
+            message: '邮箱长度为5到100个字符',
+          },
+        ]}
+      />
+
+      <ProFormText
+        name="mobile"
+        label="手机号"
+        placeholder="请输入部门邮箱"
+        rules={[
+          {
+            pattern: /^1[3-9]\d{9}$/,
+            message: '手机号格式不正确',
+          },
+        ]}
+      />
     </DrawerForm>
   )
 }

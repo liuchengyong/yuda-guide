@@ -18,6 +18,18 @@ async function main() {
       visible: true,
     },
   })
+  await prisma.dept.upsert({
+    where: { name: '根部门' },
+    update: {},
+    create: {
+      name: '根部门',
+      parentId: null,
+      sort: 0,
+      status: 1,
+      email: '',
+      mobile: '',
+    },
+  })
 }
 
 main()
