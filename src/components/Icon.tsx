@@ -8,9 +8,7 @@ interface IconProps {
 }
 
 const Icon: React.FC<IconProps> = ({ value }) => {
-  if (!value) {
-    return <>-</>
-  }
+  if (!value) return null
   if (Object.keys(Icons).includes(value)) {
     const Icon = Icons[value as keyof typeof Icons] as React.FC
     return <Icon />

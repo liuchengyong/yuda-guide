@@ -1,6 +1,6 @@
 'use client'
 
-import { ActionType, ProColumns } from '@ant-design/pro-table'
+import { ActionType } from '@ant-design/pro-table'
 import {
   DrawerForm,
   ProFormDigit,
@@ -158,7 +158,20 @@ export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
         options={MENU_TYPE_OPTIONS}
         rules={[{ required: true, message: '请选择菜单类型' }]}
       />
-      <ProFormText name="code" label="权限码" placeholder={`请输入权限码`} />
+      <ProFormText
+        name="code"
+        label="权限码"
+        placeholder={`请输入权限码`}
+        rules={[
+          { required: true, message: '请输入权限码' },
+          {
+            type: 'string',
+            min: 1,
+            max: 300,
+            message: '权限编码不能超过300个字符',
+          },
+        ]}
+      />
       <Form.Item name="icon" label="图标">
         <IconPicker />
       </Form.Item>
