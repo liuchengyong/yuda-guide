@@ -164,6 +164,7 @@ model SiteTag {
   @@unique([siteId, tagId])
 }
 
+// 系统管理-菜单
 model Menu {
   id          String   @id @default(cuid())
   name        String   @unique
@@ -179,4 +180,16 @@ model Menu {
   updatedTime DateTime @updatedAt
   parent      Menu?    @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
   children    Menu[]   @relation("MenuTree")
+}
+
+// 系统管理-岗位
+model Post {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String
+  sort        Int      @default(0)
+  status      Int
+  description String?
+  createdTime DateTime @default(now())
+  updatedTime DateTime @updatedAt
 }

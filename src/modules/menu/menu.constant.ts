@@ -33,7 +33,7 @@ export const MENU_STATUS_OPTIONS: MenuStatusOptions[] = [
   {
     label: '关闭',
     value: MenuStatus.CLOSE,
-    color: '',
+    color: 'default',
   },
 ]
 
