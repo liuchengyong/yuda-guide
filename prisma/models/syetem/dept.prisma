@@ -1,0 +1,14 @@
+model Dept {
+    id          String   @id @default(cuid())
+    name        String   @unique
+    parentId    String?
+    sort        Int      @default(0)
+    status      Int      @default(1)
+    email       String?
+    mobile      String?
+    createdTime DateTime @default(now())
+    updatedTime DateTime @updatedAt
+
+    parent   Dept?  @relation("DeptTree", fields: [parentId], references: [id], onDelete: Cascade)
+    children Dept[] @relation("DeptTree")
+}

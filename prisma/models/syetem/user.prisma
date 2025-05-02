@@ -1,0 +1,12 @@
+model User {
+    id          String   @id @default(cuid())
+    account     String   @unique
+    password    String
+    avatar      String?
+    email       String   @unique
+    status      Int      @default(1) // 1: 正常, 2: 禁用
+    createdTime DateTime @default(now())
+    updatedTime DateTime @updatedAt
+
+    roles Role[] @relation("UserRole")
+}

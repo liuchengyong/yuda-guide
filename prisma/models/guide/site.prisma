@@ -1,0 +1,9 @@
+model Site {
+    id          String   @id @default(cuid())
+    url         String
+    logo        String?
+    name        String
+    description String?
+    createdTime DateTime @default(now())
+    updatedTime DateTime @updatedAt
+}

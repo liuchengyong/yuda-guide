@@ -1,0 +1,23 @@
+// 角色
+model Role {
+    id          String    @id @default(cuid())
+    // 角色名称
+    name        String
+    // 角色编码
+    code        String
+    // 排序
+    sort        Int       @default(0)
+    // 角色状态 1-打开 2-关闭
+    status      Int       @default(1)
+    // 备注
+    description String?
+    // 创建时间
+    createdTime DateTime  @default(now())
+    // 更新时间
+    updatedTime DateTime  @updatedAt
+    // 逻辑删除，为空表示未删除，有值表示已删除
+    deletedAt   DateTime?
+
+    menus Menu[] @relation("RoleMenu")
+    users User[] @relation("UserRole")
+}
