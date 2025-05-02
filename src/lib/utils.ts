@@ -20,7 +20,7 @@ export function buildTree<
 >(datas: T[], parentId: string | null, callback: (item: T) => K): K[] {
   return datas
     .filter((item) => item.parentId === parentId)
-    .sort((a, b) => b.sort - a.sort)
+    .sort((a, b) => a.sort - b.sort)
     .map((item) => {
       let list = buildTree(datas, item.id, callback)
       return {

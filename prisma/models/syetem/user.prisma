@@ -7,6 +7,4 @@ model User {
     status      Int      @default(1) // 1: 正常, 2: 禁用
     createdTime DateTime @default(now())
     updatedTime DateTime @updatedAt
-
-    roles Role[] @relation("UserRole")
 }

@@ -16,7 +16,6 @@ export class MenuService {
   static async getList(request: NextRequest): Promise<NextResponse> {
     try {
       const { searchParams } = request.nextUrl
-      //'name' | 'path' | 'type' | 'code' | 'status'
       const searchDto = {
         name: searchParams.get('name') || '',
         path: searchParams.get('path') || '',
@@ -24,7 +23,9 @@ export class MenuService {
         code: searchParams.get('code') || '',
         status: Number(searchParams.get('status')),
       } as SearchMenuDto
-      const where: Prisma.MenuWhereInput = {}
+      const where: Prisma.MenuWhereInput = {
+        deletedAt: null,
+      }
       if (searchDto.name) {
         where.name = {
           contains: searchDto.name,
@@ -52,7 +53,7 @@ export class MenuService {
       }
 
       const datas = await prisma.menu.findMany({
-        orderBy: [{ sort: 'desc' }, { createdTime: 'desc' }],
+        orderBy: [{ sort: 'asc' }, { createdTime: 'desc' }],
         where,
       })
       return ResponseUtil.successList<Menu>(datas, datas.length, 1)
@@ -65,7 +66,10 @@ export class MenuService {
   static async getSimpleList(): Promise<NextResponse> {
     try {
       const datas: MenuTreeVo[] = await prisma.menu.findMany({
-        orderBy: [{ sort: 'desc' }, { createdTime: 'desc' }],
+        where: {
+          deletedAt: null,
+        },
+        orderBy: [{ sort: 'asc' }, { createdTime: 'desc' }],
         select: {
           id: true,
           name: true,
@@ -87,6 +91,7 @@ export class MenuService {
       if (validData.success) {
         const existing = await prisma.menu.findFirst({
           where: {
+            deletedAt: null,
             OR: [{ name: createDto.name }, { code: createDto.code }],
           },
         })
@@ -118,7 +123,7 @@ export class MenuService {
         )
       }
       const existing = await prisma.menu.findUnique({
-        where: { id },
+        where: { id, deletedAt: null },
       })
       if (!existing) {
         return ResponseUtil.businessError(
@@ -134,6 +139,7 @@ export class MenuService {
 
       const conflict = await prisma.menu.findFirst({
         where: {
+          deletedAt: null,
           OR: [{ name: updateDto.name }, { code: updateDto.code }],
           NOT: { id },
         },
@@ -146,7 +152,7 @@ export class MenuService {
         )
       }
       const updated = await prisma.menu.update({
-        where: { id },
+        where: { id, deletedAt: null },
         data: updateDto,
       })
       return ResponseUtil.success(updated)
@@ -154,6 +160,34 @@ export class MenuService {
       console.log(error)
       return ResponseUtil.serverError(error.message)
     }
+  }
+
+  /**
+   * 获取当前id的所有子孙元素
+   * @param ids
+   * @returns
+   */
+  static async getAllChildrenIds(ids: string[]): Promise<string[]> {
+    const childrens = await prisma.menu.findMany({
+      where: {
+        parentId: {
+          in: ids,
+        },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    })
+    let childrenIds: string[] = []
+    childrens.forEach((item) => {
+      childrenIds.push(item.id)
+    })
+    if (childrenIds.length > 0) {
+      childrenIds = await this.getAllChildrenIds(childrenIds)
+    }
+
+    return ids.concat(childrenIds)
   }
 
   static async delete(id: string): Promise<NextResponse> {
@@ -165,7 +199,10 @@ export class MenuService {
         )
       }
       const existing = await prisma.menu.findUnique({
-        where: { id },
+        where: {
+          id,
+          deletedAt: null,
+        },
       })
       if (!existing) {
         return ResponseUtil.businessError(
@@ -173,8 +210,18 @@ export class MenuService {
           '菜单不存在',
         )
       }
-      await prisma.menu.delete({
-        where: { id },
+
+      let deletedIds = await this.getAllChildrenIds([id])
+      await prisma.menu.updateMany({
+        where: {
+          id: {
+            in: deletedIds,
+          },
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
       })
 
       return ResponseUtil.success(null, '删除菜单成功')

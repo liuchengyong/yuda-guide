@@ -2,34 +2,45 @@ const { PrismaClient } = require('@prisma/client')
 
 const prisma = new PrismaClient()
 
-async function main() {
-  await prisma.menu.upsert({
-    where: { name: '根目录' },
-    update: {},
-    create: {
+async function initMenuData() {
+  const existing = await prisma.menu.findFirst({
+    where: {
       name: '根目录',
-      path: '',
-      type: 1,
-      icon: '',
-      code: '',
-      parentId: null,
-      sort: 0,
-      status: 1,
-      visible: true,
+      deletedAt: null,
     },
   })
-  await prisma.dept.upsert({
-    where: { name: '根部门' },
-    update: {},
-    create: {
-      name: '根部门',
-      parentId: null,
-      sort: 0,
-      status: 1,
-      email: '',
-      mobile: '',
+  if (!existing) {
+    await prisma.menu.create({
+      data: {
+        name: '根部门',
+        type: 1,
+        sort: 0,
+        status: 1,
+        visible: true,
+      },
+    })
+  }
+}
+async function initDeptData() {
+  const existing = await prisma.dept.findFirst({
+    where: {
+      name: '根目录',
+      deletedAt: null,
     },
   })
+  if (!existing) {
+    await prisma.dept.create({
+      data: {
+        name: '根部门',
+        sort: 0,
+        status: 1,
+      },
+    })
+  }
+}
+async function main() {
+  initMenuData()
+  initDeptData()
 }
 
 main()

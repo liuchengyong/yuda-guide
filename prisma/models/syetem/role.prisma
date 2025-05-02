@@ -7,7 +7,7 @@ model Role {
     code        String
     // 排序
     sort        Int       @default(0)
-    // 角色状态 1-打开 2-关闭
+    // 角色状态 1-启用 2-禁用
     status      Int       @default(1)
     // 备注
     description String?
@@ -17,7 +17,5 @@ model Role {
     updatedTime DateTime  @updatedAt
     // 逻辑删除，为空表示未删除，有值表示已删除
     deletedAt   DateTime?
-
-    menus Menu[] @relation("RoleMenu")
-    users User[] @relation("UserRole")
+    userId      String?
 }

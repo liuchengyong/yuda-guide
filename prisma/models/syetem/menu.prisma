@@ -1,18 +1,30 @@
+// 菜单
 model Menu {
-    id          String   @id @default(cuid())
-    name        String   @unique
+    id          String    @id @default(cuid())
+    // 菜单名称
+    name        String
+    // 菜单路径
     path        String?
+    // 菜单类型 1-目录 2-菜单 2-按钮
     type        Int
+    // icon
     icon        String?
+    // 权限标识
     code        String?
+    // 父级菜单
     parentId    String?
-    sort        Int      @default(0)
-    status      Int      @default(1)
+    // 排序
+    sort        Int       @default(0)
+    // 状态 1-启用 2-禁用
+    status      Int       @default(1)
+    // 是否在菜单栏显示
     visible     Boolean
-    createdTime DateTime @default(now())
-    updatedTime DateTime @updatedAt
-
-    parent   Menu?  @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
-    children Menu[] @relation("MenuTree")
-    roles    Role[] @relation("RoleMenu")
+    // 备注
+    description String?
+    // 创建时间
+    createdTime DateTime  @default(now())
+    // 更新时间
+    updatedTime DateTime  @updatedAt
+    // 逻辑删除，为空表示未删除，有值表示已删除
+    deletedAt   DateTime?
 }

@@ -21,7 +21,9 @@ export class PostService {
         current: Number(searchParams.get('current')) || 1,
         pageSize: Number(searchParams.get('pageSize')) || 20,
       } as SearchPostDto
-      const where: Prisma.PostWhereInput = {}
+      const where: Prisma.PostWhereInput = {
+        deletedAt: null,
+      }
       if (searchDto.name) {
         where.name = {
           contains: searchDto.name,
@@ -66,6 +68,7 @@ export class PostService {
       if (validData.success) {
         const existing = await prisma.post.findFirst({
           where: {
+            deletedAt: null,
             OR: [{ name: createDto.name }, { code: createDto.code }],
           },
         })
@@ -97,7 +100,10 @@ export class PostService {
         )
       }
       const existing = await prisma.post.findUnique({
-        where: { id },
+        where: {
+          id,
+          deletedAt: null,
+        },
       })
       if (!existing) {
         return ResponseUtil.businessError(
@@ -113,6 +119,7 @@ export class PostService {
 
       const conflict = await prisma.post.findFirst({
         where: {
+          deletedAt: null,
           OR: [{ name: updateDto.name }, { code: updateDto.code }],
           NOT: { id },
         },
@@ -125,7 +132,10 @@ export class PostService {
         )
       }
       const updated = await prisma.post.update({
-        where: { id },
+        where: {
+          id,
+          deletedAt: null,
+        },
         data: updateDto,
       })
       return ResponseUtil.success(updated)
@@ -144,7 +154,10 @@ export class PostService {
         )
       }
       const existing = await prisma.post.findUnique({
-        where: { id },
+        where: {
+          id,
+          deletedAt: null,
+        },
       })
       if (!existing) {
         return ResponseUtil.businessError(
@@ -152,8 +165,14 @@ export class PostService {
           '岗位不存在',
         )
       }
-      await prisma.post.delete({
-        where: { id },
+      await prisma.post.update({
+        where: {
+          id,
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
       })
 
       return ResponseUtil.success(null, '删除岗位成功')

@@ -1,5 +1,4 @@
 import { Post as PostClient } from '@prisma/client'
-import { number } from 'zod'
 
 export interface Post extends PostClient {
   status: PostStatus

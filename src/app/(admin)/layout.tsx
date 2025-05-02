@@ -19,7 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname() // 获取当前路径
   const router = useRouter() // 用于路由跳转
-
+  console.log(pathname)
   const menuRequest = async () => {
     const response = await request.get<{}, Menu>('/api/menu/list')
     const treeSelectDatas = buildTree<Menu, MenuDataItem>(

@@ -20,7 +20,9 @@ export class DeptService {
         name: searchParams.get('name') || '',
         status: Number(searchParams.get('status')),
       } as SearchDeptDto
-      const where: Prisma.DeptWhereInput = {}
+      const where: Prisma.DeptWhereInput = {
+        deletedAt: null,
+      }
       if (searchDto.name) {
         where.name = {
           contains: searchDto.name,
@@ -47,6 +49,9 @@ export class DeptService {
     try {
       const datas: DeptTreeVo[] = await prisma.dept.findMany({
         orderBy: [{ sort: 'desc' }, { createdTime: 'desc' }],
+        where: {
+          deletedAt: null,
+        },
         select: {
           id: true,
           name: true,
@@ -69,6 +74,7 @@ export class DeptService {
         const existing = await prisma.dept.findFirst({
           where: {
             name: createDto.name,
+            deletedAt: null,
           },
         })
         if (existing) {
@@ -99,7 +105,10 @@ export class DeptService {
         )
       }
       const existing = await prisma.dept.findUnique({
-        where: { id },
+        where: {
+          id,
+          deletedAt: null,
+        },
       })
       if (!existing) {
         return ResponseUtil.businessError(
@@ -116,6 +125,7 @@ export class DeptService {
       const conflict = await prisma.dept.findFirst({
         where: {
           name: updateDto.name,
+          deletedAt: null,
           NOT: { id },
         },
       })
@@ -127,7 +137,10 @@ export class DeptService {
         )
       }
       const updated = await prisma.dept.update({
-        where: { id },
+        where: {
+          id,
+          deletedAt: null,
+        },
         data: updateDto,
       })
       return ResponseUtil.success(updated)
@@ -135,6 +148,34 @@ export class DeptService {
       console.log(error)
       return ResponseUtil.serverError(error.message)
     }
+  }
+
+  /**
+   * 获取当前id的所有子孙元素
+   * @param ids
+   * @returns
+   */
+  static async getAllChildrenIds(ids: string[]): Promise<string[]> {
+    const childrens = await prisma.dept.findMany({
+      where: {
+        parentId: {
+          in: ids,
+        },
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    })
+    let childrenIds: string[] = []
+    childrens.forEach((item) => {
+      childrenIds.push(item.id)
+    })
+    if (childrenIds.length > 0) {
+      childrenIds = await this.getAllChildrenIds(childrenIds)
+    }
+
+    return ids.concat(childrenIds)
   }
 
   static async delete(id: string): Promise<NextResponse> {
@@ -146,7 +187,10 @@ export class DeptService {
         )
       }
       const existing = await prisma.dept.findUnique({
-        where: { id },
+        where: {
+          id,
+          deletedAt: null,
+        },
       })
       if (!existing) {
         return ResponseUtil.businessError(
@@ -154,8 +198,19 @@ export class DeptService {
           '部门不存在',
         )
       }
-      await prisma.dept.delete({
-        where: { id },
+
+      let deletedIds = await this.getAllChildrenIds([id])
+
+      await prisma.dept.updateMany({
+        where: {
+          id: {
+            in: deletedIds,
+          },
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
       })
 
       return ResponseUtil.success(null, '删除部门成功')
