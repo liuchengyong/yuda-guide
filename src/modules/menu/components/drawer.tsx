@@ -191,7 +191,7 @@ export const DrawerEdit: React.FC<DrawerEditProps> = (props) => {
       <ProFormRadio.Group
         name="status"
         label="菜单状态"
-        initialValue={MenuStatus.OPEN}
+        initialValue={MenuStatus.ENABLED}
         options={MENU_STATUS_OPTIONS}
         rules={[{ required: true, message: '请选择菜单状态' }]}
       />

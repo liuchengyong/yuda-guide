@@ -12,7 +12,7 @@ async function initMenuData() {
   if (!existing) {
     await prisma.menu.create({
       data: {
-        name: '根部门',
+        name: '根目录',
         type: 1,
         sort: 0,
         status: 1,
@@ -24,7 +24,7 @@ async function initMenuData() {
 async function initDeptData() {
   const existing = await prisma.dept.findFirst({
     where: {
-      name: '根目录',
+      name: '根部门',
       deletedAt: null,
     },
   })

@@ -5,8 +5,8 @@ export interface Post extends PostClient {
 }
 
 export enum PostStatus {
-  OPEN = 1, // 开启
-  CLOSE = 2, // 关闭
+  ENABLED = 1, // 启用
+  DISABLED = 2, // 禁用
 }
 
 export interface PostStatusOptions {

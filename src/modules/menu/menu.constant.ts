@@ -26,13 +26,13 @@ export const MENU_TYPE_OPTIONS: MenuTypeOptions[] = [
 
 export const MENU_STATUS_OPTIONS: MenuStatusOptions[] = [
   {
-    label: '开启',
-    value: MenuStatus.OPEN,
+    label: '启用',
+    value: MenuStatus.ENABLED,
     color: 'magenta',
   },
   {
-    label: '关闭',
-    value: MenuStatus.CLOSE,
+    label: '禁用',
+    value: MenuStatus.DISABLED,
     color: 'default',
   },
 ]

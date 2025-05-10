@@ -3,13 +3,13 @@ import { PostStatus, PostStatusOptions } from './post.model'
 
 export const POST_STATUS_OPTIONS: PostStatusOptions[] = [
   {
-    label: '开启',
-    value: PostStatus.OPEN,
+    label: '启用',
+    value: PostStatus.ENABLED,
     color: 'magenta',
   },
   {
-    label: '关闭',
-    value: PostStatus.CLOSE,
+    label: '禁用',
+    value: PostStatus.DISABLED,
     color: 'default',
   },
 ]

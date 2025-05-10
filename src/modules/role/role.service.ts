@@ -1,243 +1,182 @@
-import { Permission } from './../../../node_modules/.pnpm/@prisma+client@6.5.0_prisma@6.5.0_typescript@5.8.2__typescript@5.8.2/node_modules/.prisma/client/index.d'
 import { prisma } from '@/lib/prisma'
 import { ResponseUtil } from '@/modules/http/response.util'
-import { CreateRoleDto, GetRoleDto, Role, UpdateRoleDto } from './role.model'
 import { ResponseCode } from '../http/http.model'
 import { NextRequest, NextResponse } from 'next/server'
 import { validateSchema } from '@/lib/validations'
-import { Prisma } from '@prisma/client'
-import { RoleSchema } from './role.constant'
+import { Prisma, Role } from '@prisma/client'
+import { SearchRoleDto, CreateRoleDto, RoleSchema, UpdateRoleDto } from './role.type'
 
 /**
- * 角色服务类
+ * 权限服务类
  */
 export class RoleService {
-  /**
-   * 获取角色列表
-   * @returns 角色列表响应
-   */
-  static async getRoles(request: NextRequest): Promise<NextResponse> {
+  static async getList(request: NextRequest): Promise<NextResponse> {
     try {
       const { searchParams } = request.nextUrl
-      const getRoleDto = {
-        page: Number(searchParams.get('page')) || 1,
-        pageSize: Number(searchParams.get('pageSize')) || 20,
+      const searchDto = {
         name: searchParams.get('name') || '',
-        id: searchParams.get('id') || '',
+        code: searchParams.get('code') || '',
         status: Number(searchParams.get('status')),
-      } as GetRoleDto
-      const where: Prisma.RoleWhereInput = {}
-      if (getRoleDto.id) {
-        where.id = {
-          equals: getRoleDto.id,
-        }
+        current: Number(searchParams.get('current')) || 1,
+        pageSize: Number(searchParams.get('pageSize')) || 20,
+      } as SearchRoleDto
+      const where: Prisma.RoleWhereInput = {
+        deletedAt: null,
       }
-
-      if (getRoleDto.name) {
+      if (searchDto.name) {
         where.name = {
-          contains: getRoleDto.name,
+          contains: searchDto.name,
         }
       }
-
-      if (getRoleDto.status) {
+      if (searchDto.code) {
+        where.code = {
+          contains: searchDto.code,
+        }
+      }
+      if (searchDto.status) {
         where.status = {
-          equals: getRoleDto.status,
+          equals: searchDto.status,
         }
       }
 
       const total = await prisma.role.count({
         where,
       })
-
-      const roles = await prisma.role.findMany({
-        skip: (getRoleDto.page - 1) * getRoleDto.pageSize,
-        take: getRoleDto.pageSize,
-        orderBy: [{ updatedTime: 'desc' }],
+      const datas = await prisma.role.findMany({
+        orderBy: [{ sort: 'desc' }, { createdTime: 'desc' }],
         where,
-        include: {
-          rolePermissions: true,
-        },
+        skip: (searchDto.current - 1) * searchDto.pageSize,
+        take: searchDto.pageSize,
       })
-      return ResponseUtil.successList(roles, total, getRoleDto.page)
+      return ResponseUtil.successList<Role>(
+        datas,
+        total,
+        searchDto.current,
+        searchDto.pageSize,
+      )
     } catch (error: any) {
-      console.error('获取角色列表失败:', error)
+      console.error('获取全部角色:', error)
       return ResponseUtil.serverError(error.message)
     }
   }
 
-  /**
-   * 创建角色
-   * @param request 请求对象
-   * @returns 创建结果响应
-   */
-  static async createRole(request: NextRequest): Promise<NextResponse> {
+  static async create(request: NextRequest): Promise<NextResponse> {
     try {
-      const createRoleDto = (await request.json()) as CreateRoleDto
-      const validData = validateSchema<Partial<Role>>(RoleSchema, createRoleDto)
+      const createDto = (await request.json()) as CreateRoleDto
+      const validData = validateSchema<Partial<Role>>(RoleSchema, createDto)
       if (validData.success) {
-        const existingRole = await prisma.role.findFirst({
+        const existing = await prisma.role.findFirst({
           where: {
-            name: createRoleDto.name,
+            deletedAt: null,
+            OR: [{ name: createDto.name }, { code: createDto.code }],
           },
         })
-        if (existingRole) {
+        if (existing) {
           return ResponseUtil.businessError(
-            ResponseCode.ROLE_EXISTING,
+            ResponseCode.RESOURCE_EXISTS,
             '角色已存在',
           )
         }
-
-        const permissionIds = createRoleDto.permissionIds || []
-        delete createRoleDto.permissionIds
-        const newRole = await prisma.role.create({
-          data: createRoleDto,
+        const create = await prisma.role.create({
+          data: createDto,
         })
-        if (permissionIds.length > 0) {
-          await prisma.rolePermission.createMany({
-            data: permissionIds.map((permissionId) => ({
-              permissionId,
-              roleId: newRole.id,
-            })),
-          })
-        }
-        return ResponseUtil.success(newRole)
+        return ResponseUtil.success(create)
       } else {
         return ResponseUtil.businessValidError(validData.errors)
       }
     } catch (error: any) {
+      console.log(error)
       return ResponseUtil.serverError(error.message)
     }
   }
 
-  /**
-   * 更新角色
-   * @param request 请求对象
-   * @returns 更新结果响应
-   */
-  static async updateRole(request: NextRequest): Promise<NextResponse> {
+  static async update(request: NextRequest, id: string): Promise<NextResponse> {
     try {
-      const { searchParams } = request.nextUrl
-      const id = searchParams.get('id')
-
       if (!id) {
-        return ResponseUtil.badRequest('角色ID不能为空')
+        return ResponseUtil.businessError(
+          ResponseCode.INVALID_PARAM,
+          '角色ID不能为空',
+        )
       }
-
-      // 检查角色是否存在
-      const existingRole = await prisma.role.findUnique({
-        where: { id },
+      const existing = await prisma.role.findUnique({
+        where: {
+          id,
+          deletedAt: null,
+        },
       })
-
-      if (!existingRole) {
-        return ResponseUtil.businessError(ResponseCode.ERROR, '角色不存在')
+      if (!existing) {
+        return ResponseUtil.businessError(
+          ResponseCode.RESOURCE_EXISTS,
+          '角色不存在',
+        )
       }
-
-      const updateRoleDto = (await request.json()) as UpdateRoleDto
-      const validData = validateSchema(RoleSchema, updateRoleDto)
-
+      const updateDto = (await request.json()) as UpdateRoleDto
+      const validData = validateSchema<Partial<Role>>(RoleSchema, updateDto)
       if (!validData.success) {
         return ResponseUtil.businessValidError(validData.errors)
       }
 
-      // 检查名称或代码是否与其他角色冲突
-      const conflictRole = await prisma.role.findFirst({
+      const conflict = await prisma.role.findFirst({
         where: {
-          name: updateRoleDto.name,
+          deletedAt: null,
+          OR: [{ name: updateDto.name }, { code: updateDto.code }],
           NOT: { id },
         },
       })
 
-      if (conflictRole) {
+      if (conflict) {
         return ResponseUtil.businessError(
-          ResponseCode.ROLE_EXISTING,
+          ResponseCode.RESOURCE_EXISTS,
           '角色名称或角色编码已存在',
         )
       }
-
-      const permissionIds = updateRoleDto.permissionIds || []
-      const rolePermissions = await prisma.rolePermission.findMany({
+      const updated = await prisma.role.update({
         where: {
-          roleId: id,
+          id,
+          deletedAt: null,
         },
+        data: updateDto,
       })
-      const deletePermissionIds = rolePermissions
-        .filter(
-          (rolePermission) =>
-            !permissionIds.includes(rolePermission.permissionId),
-        )
-        .map((rolePermission) => rolePermission.permissionId)
-
-      if (deletePermissionIds.length > 0) {
-        await prisma.rolePermission.deleteMany({
-          where: {
-            roleId: id,
-            permissionId: {
-              in: deletePermissionIds,
-            },
-          },
-        })
-      }
-
-      const createPermissionIds = permissionIds.filter(
-        (permissionId) =>
-          !rolePermissions.some(
-            (rolePermission) => rolePermission.permissionId === permissionId,
-          ),
-      )
-      if (createPermissionIds.length > 0) {
-        await prisma.rolePermission.createMany({
-          data: createPermissionIds.map((permissionId) => ({
-            permissionId,
-            roleId: id,
-          })),
-        })
-      }
-
-      delete updateRoleDto.permissionIds
-      // 更新角色
-      const updatedRole = await prisma.role.update({
-        where: { id },
-        data: updateRoleDto,
-      })
-
-      return ResponseUtil.success(updatedRole)
+      return ResponseUtil.success(updated)
     } catch (error: any) {
-      console.error('更新角色失败:', error)
+      console.log(error)
       return ResponseUtil.serverError(error.message)
     }
   }
 
-  /**
-   * 删除角色
-   * @param request 请求对象
-   * @returns 删除结果响应
-   */
-  static async deleteRole(request: NextRequest): Promise<NextResponse> {
+  static async delete(id: string): Promise<NextResponse> {
     try {
-      const { searchParams } = new URL(request.url)
-      const id = searchParams.get('id')
-
       if (!id) {
-        return ResponseUtil.badRequest('角色ID不能为空')
+        return ResponseUtil.businessError(
+          ResponseCode.INVALID_PARAM,
+          '角色ID不能为空',
+        )
       }
-
-      // 检查角色是否存在
-      const existingRole = await prisma.role.findUnique({
-        where: { id },
+      const existing = await prisma.role.findUnique({
+        where: {
+          id,
+          deletedAt: null,
+        },
       })
-
-      if (!existingRole) {
-        return ResponseUtil.businessError(ResponseCode.ERROR, '角色不存在')
+      if (!existing) {
+        return ResponseUtil.businessError(
+          ResponseCode.RESOURCE_EXISTS,
+          '角色不存在',
+        )
       }
-
-      // 删除角色（关联的角色-权限和用户-角色记录会通过级联删除自动删除）
-      await prisma.role.delete({
-        where: { id },
+      await prisma.role.update({
+        where: {
+          id,
+          deletedAt: null,
+        },
+        data: {
+          deletedAt: new Date(),
+        },
       })
 
       return ResponseUtil.success(null, '删除角色成功')
     } catch (error: any) {
-      console.error('删除角色失败:', error)
+      console.log(error)
       return ResponseUtil.serverError(error.message)
     }
   }

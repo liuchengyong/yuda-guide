@@ -1,7 +1,7 @@
 'use client'
 
-import { PostPage } from '@/modules/post/post.page'
+import { RolePage } from '@/modules/role/role.page'
 
 export default function Page() {
-  return <PostPage></PostPage>
+  return <RolePage></RolePage>
 }

@@ -1,30 +1,17 @@
-// 菜单
 model Menu {
-    id          String    @id @default(cuid())
-    // 菜单名称
-    name        String
-    // 菜单路径
-    path        String?
-    // 菜单类型 1-目录 2-菜单 2-按钮
-    type        Int
-    // icon
-    icon        String?
-    // 权限标识
-    code        String?
-    // 父级菜单
-    parentId    String?
-    // 排序
-    sort        Int       @default(0)
-    // 状态 1-启用 2-禁用
-    status      Int       @default(1)
-    // 是否在菜单栏显示
-    visible     Boolean
-    // 备注
-    description String?
-    // 创建时间
-    createdTime DateTime  @default(now())
-    // 更新时间
-    updatedTime DateTime  @updatedAt
-    // 逻辑删除，为空表示未删除，有值表示已删除
-    deletedAt   DateTime?
+    id          String     @id @default(cuid()) // 菜单ID
+    name        String // 菜单名称
+    path        String? // 菜单路径
+    type        Int // 菜单类型 1-目录 2-菜单 2-按钮
+    icon        String? // icon
+    code        String? // 权限标识
+    parentId    String? // 父级菜单
+    sort        Int        @default(0) // 排序
+    status      Int        @default(1) // 状态 1-启用 2-禁用
+    visible     Boolean // 是否在菜单栏显示
+    description String? // 备注
+    createdTime DateTime   @default(now()) // 创建时间
+    updatedTime DateTime   @updatedAt // 更新时间
+    deletedAt   DateTime? // 逻辑删除，为空表示未删除，有值表示已删除
+    roles       RoleMenu[] // 关联角色列表
 }

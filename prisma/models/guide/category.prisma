@@ -5,7 +5,4 @@ model Category {
     parentId    String?
     createdTime DateTime @default(now())
     updatedTime DateTime @updatedAt
-
-    parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
-    children Category[] @relation("CategoryTree")
 }

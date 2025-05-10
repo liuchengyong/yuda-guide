@@ -3,13 +3,13 @@ import { DeptStatus, DeptStatusOptions } from './dept.model'
 
 export const DEPT_STATUS_OPTIONS: DeptStatusOptions[] = [
   {
-    label: '开启',
-    value: DeptStatus.OPEN,
+    label: '启用',
+    value: DeptStatus.ENABLED,
     color: 'magenta',
   },
   {
-    label: '关闭',
-    value: DeptStatus.CLOSE,
+    label: '禁用',
+    value: DeptStatus.DISABLED,
     color: 'default',
   },
 ]

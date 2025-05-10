@@ -7,8 +7,8 @@ export interface Dept extends DeptClient {
 }
 
 export enum DeptStatus {
-  OPEN = 1, // 开启
-  CLOSE = 2, // 关闭
+  ENABLED = 1, // 启用
+  DISABLED = 2, // 禁用
 }
 
 export interface DeptStatusOptions {
