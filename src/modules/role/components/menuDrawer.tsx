@@ -1,18 +1,14 @@
 'use client'
 
-import { ActionType } from '@ant-design/pro-table'
-import {
-  DrawerForm,
-  ProFormDigit,
-  ProFormInstance,
-  ProFormRadio,
-  ProFormText,
-  ProFormTextArea,
-} from '@ant-design/pro-form'
-import { App, Button, Form, Space, Tag, Tree } from 'antd'
-import React, { useEffect, useRef, useState } from 'react'
+import { buildTree } from '@/lib/utils'
 import { request } from '@/modules/http/request'
+import { Menu, SearchMenuDto } from '@/modules/menu/menu.type'
+import { DrawerForm, ProFormInstance } from '@ant-design/pro-form'
+import { ActionType } from '@ant-design/pro-table'
+import { App, Form, TreeDataNode } from 'antd'
+import React, { useEffect, useRef, useState } from 'react'
 import { Role } from '../role.type'
+import MenuTree from './menuTree'
 
 export interface MenuDrawerEditProps {
   currentRecord: Role | null
@@ -25,10 +21,46 @@ export const MenuDrawerEdit: React.FC<MenuDrawerEditProps> = (props) => {
   const { currentRecord, open, onOpenChange, actionRef } = props
   const { modal, notification } = App.useApp()
   const formRef = useRef<ProFormInstance<Partial<Role>>>(null)
+  const [treeData, setTreeData] = useState<TreeDataNode[]>([])
 
   useEffect(() => {
     if (open && currentRecord) {
-      // formRef.current?.setFieldsValue(currentRecord)
+      request.get<SearchMenuDto, Menu>('/api/menu/list').then((response) => {
+        let datas: TreeDataNode[] = []
+        let rootMenus: Menu[] = []
+        response.datas?.forEach((item) => {
+          if (!response.datas?.some((item1) => item.parentId == item1.id)) {
+            rootMenus.push(item)
+          }
+        })
+        rootMenus.forEach((item) => {
+          let treeDataNode: TreeDataNode = {
+            title: item.name,
+            key: item.id,
+            isLeaf: false,
+            children: [],
+          }
+          const children = buildTree<Menu, TreeDataNode>(
+            response.datas || [],
+            item.id,
+            (item, children) => {
+              return {
+                title: item.name,
+                key: item.id,
+                isLeaf: children && children.length > 0 ? false : true,
+                children: children,
+              }
+            },
+          )
+          if (!item.parentId) {
+            datas = datas.concat(children || [])
+          } else {
+            treeDataNode.children = children
+            datas.push(treeDataNode)
+          }
+        })
+        setTreeData(datas)
+      })
     }
   }, [open, currentRecord])
   // 处理创建角色
@@ -104,7 +136,7 @@ export const MenuDrawerEdit: React.FC<MenuDrawerEditProps> = (props) => {
       onFinish={handleFinish}
     >
       <Form.Item name="menuIds" label="菜单权限">
-        <Tree checkable></Tree>
+        <MenuTree treeData={treeData}></MenuTree>
       </Form.Item>
     </DrawerForm>
   )

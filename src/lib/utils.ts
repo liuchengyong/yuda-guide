@@ -17,14 +17,18 @@ export function buildTree<
     id: string
   },
   K extends { children?: K[] },
->(datas: T[], parentId: string | null, callback: (item: T) => K): K[] {
+>(
+  datas: T[],
+  parentId: string | null,
+  callback: (item: T, children: K[]) => K,
+): K[] {
   return datas
     .filter((item) => item.parentId === parentId)
     .sort((a, b) => a.sort - b.sort)
     .map((item) => {
       let list = buildTree(datas, item.id, callback)
       return {
-        ...callback(item),
+        ...callback(item, list),
         children: list.length > 0 ? list : undefined,
       } as K
     })
