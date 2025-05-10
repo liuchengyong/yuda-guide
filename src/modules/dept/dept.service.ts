@@ -1,17 +1,17 @@
 import { prisma } from '@/lib/prisma'
-import { ResponseUtil } from '@/modules/http/response.util'
-import { ResponseCode } from '../http/http.model'
-import { NextRequest, NextResponse } from 'next/server'
 import { validateSchema } from '@/lib/validations'
+import { ResponseUtil } from '@/modules/http/response.util'
 import { Prisma } from '@prisma/client'
+import { NextRequest, NextResponse } from 'next/server'
+import { ResponseCode } from '../http/http.type'
 import {
   CreateDeptDto,
   Dept,
+  DeptSchema,
   DeptTreeVo,
   SearchDeptDto,
   UpdateDeptDto,
-} from './dept.model'
-import { DeptSchema } from './dept.constant'
+} from './dept.type'
 export class DeptService {
   static async getList(request: NextRequest): Promise<NextResponse> {
     try {

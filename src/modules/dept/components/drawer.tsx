@@ -1,6 +1,7 @@
 'use client'
 
-import { ActionType, ProColumns } from '@ant-design/pro-table'
+import { buildTree } from '@/lib/utils'
+import { request } from '@/modules/http/request'
 import {
   DrawerForm,
   ProFormDigit,
@@ -9,13 +10,11 @@ import {
   ProFormText,
   ProFormTreeSelect,
 } from '@ant-design/pro-form'
+import { ActionType } from '@ant-design/pro-table'
 import { App } from 'antd'
-import React, { useEffect, useRef, useState } from 'react'
-import { buildTree } from '@/lib/utils'
 import { DataNode } from 'antd/lib/tree'
-import { request } from '@/modules/http/request'
-import { Dept, DeptStatus, DeptTreeVo } from '../dept.model'
-import { DEPT_STATUS_OPTIONS } from '../dept.constant'
+import React, { useEffect, useRef } from 'react'
+import { DEPT_STATUS_OPTIONS, Dept, DeptStatus, DeptTreeVo } from '../dept.type'
 
 export interface DrawerEditProps {
   currentRecord: Dept | null

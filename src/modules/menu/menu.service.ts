@@ -1,17 +1,17 @@
 import { prisma } from '@/lib/prisma'
 import { ResponseUtil } from '@/modules/http/response.util'
+
+import { validateSchema } from '@/lib/validations'
+import { Menu, Prisma } from '@prisma/client'
+import { NextRequest, NextResponse } from 'next/server'
+import { ResponseCode } from '../http/http.type'
 import {
   CreateMenuDto,
-  Menu,
+  MenuSchema,
   MenuTreeVo,
   SearchMenuDto,
   UpdateMenuDto,
-} from './menu.model'
-import { ResponseCode } from '../http/http.model'
-import { NextRequest, NextResponse } from 'next/server'
-import { validateSchema } from '@/lib/validations'
-import { Prisma } from '@prisma/client'
-import { MenuSchema } from './menu.constant'
+} from './menu.type'
 export class MenuService {
   static async getList(request: NextRequest): Promise<NextResponse> {
     try {

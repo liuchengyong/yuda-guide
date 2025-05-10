@@ -1,6 +1,6 @@
 'use client'
 
-import { ActionType } from '@ant-design/pro-table'
+import { request } from '@/modules/http/request'
 import {
   DrawerForm,
   ProFormDigit,
@@ -9,10 +9,10 @@ import {
   ProFormText,
   ProFormTextArea,
 } from '@ant-design/pro-form'
-import { App, Button, Form, Space, Tag } from 'antd'
-import React, { useEffect, useRef, useState } from 'react'
-import { request } from '@/modules/http/request'
-import { Role } from '../role.type'
+import { ActionType } from '@ant-design/pro-table'
+import { App } from 'antd'
+import React, { useEffect, useRef } from 'react'
+import { Role, ROLE_STATUS_CONFIG, RoleStatus } from '../role.type'
 
 export interface DrawerEditProps {
   currentRecord: Role | null

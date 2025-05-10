@@ -1,7 +1,7 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
-import { ResponseData, ResponseStatus } from './http.model'
-import { merge } from 'lodash'
 import { notification } from 'antd'
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import { merge } from 'lodash'
+import { ResponseData, ResponseStatus } from './http.type'
 
 class Request {
   instance: AxiosInstance

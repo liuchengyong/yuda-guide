@@ -1,6 +1,6 @@
 'use client'
 
-import { ActionType } from '@ant-design/pro-table'
+import { request } from '@/modules/http/request'
 import {
   DrawerForm,
   ProFormDigit,
@@ -9,11 +9,10 @@ import {
   ProFormText,
   ProFormTextArea,
 } from '@ant-design/pro-form'
-import { App, Button, Form, Space, Tag } from 'antd'
-import React, { useEffect, useRef, useState } from 'react'
-import { request } from '@/modules/http/request'
-import { Post, PostStatus } from '../post.model'
-import { POST_STATUS_OPTIONS } from '../post.constant'
+import { ActionType } from '@ant-design/pro-table'
+import { App } from 'antd'
+import React, { useEffect, useRef } from 'react'
+import { Post, POST_STATUS_OPTIONS, PostStatus } from '../post.type'
 
 export interface DrawerEditProps {
   currentRecord: Post | null

@@ -1,5 +1,6 @@
 import { Role as RoleClient, RoleMenu as RoleMenuClient } from '@prisma/client'
-import { Menu } from '../menu/menu.model'
+import { z } from 'zod'
+import { Menu } from '../menu/menu.type'
 
 export interface Role extends RoleClient {
   status: RoleStatus
@@ -37,7 +38,6 @@ export type SearchRoleDto = Partial<Pick<Role, 'name' | 'code' | 'status'>> & {
   current: number
   pageSize: number
 }
-
 
 /**
  * 角色状态配置

@@ -1,19 +1,17 @@
 'use client'
+import { DEFAULT_PAGINATION } from '@/constant'
 import { PageContainer } from '@ant-design/pro-layout'
 import ProTable, { ActionType, ProColumns } from '@ant-design/pro-table'
 import { App, Button, Space, Tag } from 'antd'
-import React, { useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { request } from '../http/request'
 import { DrawerEdit } from './components/drawer'
-import { Post, SearchPostDto } from './post.model'
-import { POST_STATUS_OPTIONS } from './post.constant'
-import { DEFAULT_PAGINATION } from '@/constant'
+import { Post, POST_STATUS_OPTIONS, SearchPostDto } from './post.type'
 export function PostPage() {
   const { modal, notification } = App.useApp()
   const [currentRecord, setCurrentRecord] = useState<Post | null>(null)
   const [openModal, setOpenModal] = useState(false)
   const actionRef = useRef<ActionType>(null)
-  const [expandedRowKeys, setExpandedRowKeys] = useState<string[]>([])
 
   const columns: ProColumns<Post>[] = [
     {

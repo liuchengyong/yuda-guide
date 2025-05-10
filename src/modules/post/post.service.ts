@@ -1,11 +1,16 @@
 import { prisma } from '@/lib/prisma'
-import { ResponseUtil } from '@/modules/http/response.util'
-import { ResponseCode } from '../http/http.model'
-import { NextRequest, NextResponse } from 'next/server'
 import { validateSchema } from '@/lib/validations'
+import { ResponseUtil } from '@/modules/http/response.util'
 import { Prisma } from '@prisma/client'
-import { CreatePostDto, Post, SearchPostDto, UpdatePostDto } from './post.model'
-import { PostSchema } from './post.constant'
+import { NextRequest, NextResponse } from 'next/server'
+import { ResponseCode } from '../http/http.type'
+import {
+  CreatePostDto,
+  Post,
+  PostSchema,
+  SearchPostDto,
+  UpdatePostDto,
+} from './post.type'
 
 /**
  * 权限服务类

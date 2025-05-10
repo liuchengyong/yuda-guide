@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server'
-import { ResponseCode, ResponseData, ResponseStatus } from './http.model'
 import { ValidationResultError } from '@/lib/validations'
+import { NextResponse } from 'next/server'
+import { ResponseCode, ResponseData, ResponseStatus } from './http.type'
 
 /**
  * API工具类，用于处理API请求和响应

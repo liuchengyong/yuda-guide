@@ -1,6 +1,8 @@
 'use client'
 
-import { ActionType } from '@ant-design/pro-table'
+import IconPicker from '@/components/IconPicker'
+import { buildTree } from '@/lib/utils'
+import { request } from '@/modules/http/request'
 import {
   DrawerForm,
   ProFormDigit,
@@ -10,14 +12,18 @@ import {
   ProFormText,
   ProFormTreeSelect,
 } from '@ant-design/pro-form'
+import { ActionType } from '@ant-design/pro-table'
 import { App, Form } from 'antd'
-import React, { useEffect, useRef } from 'react'
-import { buildTree } from '@/lib/utils'
 import { DataNode } from 'antd/lib/tree'
-import { Menu, MenuStatus, MenuTreeVo, MenuType } from '../menu.model'
-import { request } from '@/modules/http/request'
-import { MENU_STATUS_OPTIONS, MENU_TYPE_OPTIONS } from '../menu.constant'
-import IconPicker from '@/components/IconPicker'
+import React, { useEffect, useRef } from 'react'
+import {
+  Menu,
+  MENU_STATUS_OPTIONS,
+  MENU_TYPE_OPTIONS,
+  MenuStatus,
+  MenuTreeVo,
+  MenuType,
+} from '../menu.type'
 
 export interface DrawerEditProps {
   currentRecord: Menu | null

@@ -1,15 +1,19 @@
 'use client'
+import Icon from '@/components/Icon'
+import { buildTree } from '@/lib/utils'
+import { PlusOutlined, SwapOutlined } from '@ant-design/icons'
 import { PageContainer } from '@ant-design/pro-layout'
 import ProTable, { ActionType, ProColumns } from '@ant-design/pro-table'
 import { App, Button, Space, Tag } from 'antd'
-import React, { useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { request } from '../http/request'
-import { buildTree } from '@/lib/utils'
-import { Menu, SearchMenuDto } from './menu.model'
-import { MENU_STATUS_OPTIONS, MENU_TYPE_OPTIONS } from './menu.constant'
 import { DrawerEdit } from './components/drawer'
-import Icon from '@/components/Icon'
-import { PlusOutlined, SwapOutlined } from '@ant-design/icons'
+import {
+  Menu,
+  MENU_STATUS_OPTIONS,
+  MENU_TYPE_OPTIONS,
+  SearchMenuDto,
+} from './menu.type'
 export function MenuPage() {
   const { modal, notification } = App.useApp()
   const [currentRecord, setCurrentRecord] = useState<Menu | null>(null)

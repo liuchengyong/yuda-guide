@@ -1,14 +1,13 @@
 'use client'
+import { buildTree } from '@/lib/utils'
+import { PlusOutlined, SwapOutlined } from '@ant-design/icons'
 import { PageContainer } from '@ant-design/pro-layout'
 import ProTable, { ActionType, ProColumns } from '@ant-design/pro-table'
 import { App, Button, Space, Tag } from 'antd'
-import React, { useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { request } from '../http/request'
-import { buildTree } from '@/lib/utils'
 import { DrawerEdit } from './components/drawer'
-import { PlusOutlined, SwapOutlined } from '@ant-design/icons'
-import { Dept, SearchDeptDto } from './dept.model'
-import { DEPT_STATUS_OPTIONS } from './dept.constant'
+import { Dept, DEPT_STATUS_OPTIONS, SearchDeptDto } from './dept.type'
 export function DeptPage() {
   const { modal, notification } = App.useApp()
   const [currentRecord, setCurrentRecord] = useState<Dept | null>(null)
