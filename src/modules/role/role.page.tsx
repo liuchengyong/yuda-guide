@@ -2,13 +2,12 @@
 import { DEFAULT_PAGINATION } from '@/constant'
 import { PageContainer } from '@ant-design/pro-layout'
 import ProTable, { ActionType, ProColumns } from '@ant-design/pro-table'
-import { Role } from '@prisma/client'
 import { App, Button, Space, Tag } from 'antd'
 import { useRef, useState } from 'react'
 import { request } from '../http/request'
 import { DrawerEdit } from './components/drawer'
 import { MenuDrawerEdit } from './components/menuDrawer'
-import { ROLE_STATUS_CONFIG, SearchRoleDto } from './role.type'
+import { Role, ROLE_STATUS_CONFIG, SearchRoleDto } from './role.type'
 export function RolePage() {
   const { modal, notification } = App.useApp()
   const [currentRecord, setCurrentRecord] = useState<Role | null>(null)
