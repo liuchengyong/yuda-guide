@@ -1,23 +1,23 @@
 model Role {
-    id          String     @id @default(cuid()) // 角色ID
+    id          String    @id @default(cuid()) // 角色ID
     name        String // 角色名称
     code        String // 角色编码
-    sort        Int        @default(0) // 排序
-    status      Int        @default(1) // 角色状态 1-启用 2-禁用
+    sort        Int       @default(0) // 排序
+    status      Int       @default(1) // 角色状态 1-启用 2-禁用
     description String? // 备注
-    createdTime DateTime   @default(now()) // 创建时间
-    updatedTime DateTime   @updatedAt // 更新时间
+    createdTime DateTime  @default(now()) // 创建时间
+    updatedTime DateTime  @updatedAt // 更新时间
     deletedAt   DateTime? // 逻辑删除，为空表示未删除，有值表示已删除
-    menus       RoleMenu[] // 关联的菜单列表
-    users       UserRole[] // 关联的用户列表
 }
 
 model RoleMenu {
+    id          String    @id @default(cuid()) // 角色菜单表
     menuId      String // 菜单ID
     roleId      String // 角色ID
-    createdTime DateTime @default(now()) // 创建时间
-    menu        Menu     @relation(fields: [menuId], references: [id]) // 菜单信息
-    role        Role     @relation(fields: [roleId], references: [id]) // 角色信息
+    createdTime DateTime  @default(now()) // 创建时间
+    updatedTime DateTime  @updatedAt // 更新时间
+    deletedAt   DateTime? // 逻辑删除，为空表示未删除，有值表示已删除
 
-    @@id([menuId, roleId])
+    @@index([menuId])
+    @@index([roleId])
 }

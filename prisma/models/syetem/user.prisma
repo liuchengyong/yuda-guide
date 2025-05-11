@@ -1,22 +1,23 @@
 model User {
-    id          String     @id @default(cuid()) // 用户ID
-    account     String     @unique // 账号
+    id          String    @id @default(cuid()) // 用户ID
+    account     String    @unique // 账号
     password    String // 密码
     avatar      String? // 头像
-    email       String     @unique // emial
-    status      Int        @default(1) // 状态 1: 正常, 2: 禁用
-    createdTime DateTime   @default(now()) // 创建时间
-    updatedTime DateTime   @updatedAt // 更新时间
+    email       String    @unique // emial
+    status      Int       @default(1) // 状态 1: 正常, 2: 禁用
+    createdTime DateTime  @default(now()) // 创建时间
+    updatedTime DateTime  @updatedAt // 更新时间
     deletedAt   DateTime? // 逻辑删除，为空表示未删除，有值表示已删除
-    roles       UserRole[] // 关联的菜单列表
 }
 
 model UserRole {
+    id          String    @id @default(cuid()) // 用户ID
     userId      String // 用户ID
     roleId      String // 角色ID
-    createdTime DateTime @default(now()) // 创建时间
-    user        User     @relation(fields: [userId], references: [id]) // 菜单信息
-    role        Role     @relation(fields: [roleId], references: [id]) // 角色信息
+    createdTime DateTime  @default(now()) // 创建时间
+    updatedTime DateTime  @updatedAt // 更新时间
+    deletedAt   DateTime? // 逻辑删除，为空表示未删除，有值表示已删除
 
-    @@id([userId, roleId])
+    @@index([userId])
+    @@index([roleId])
 }

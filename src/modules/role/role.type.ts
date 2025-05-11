@@ -1,15 +1,9 @@
-import { Role as RoleClient, RoleMenu as RoleMenuClient } from '@prisma/client'
+import { Role as RoleClient, RoleMenu } from '@prisma/client'
 import { z } from 'zod'
-import { Menu } from '../menu/menu.type'
 
 export interface Role extends RoleClient {
   status: RoleStatus
-  menus?: RoleMenu[]
-}
-
-export interface RoleMenu extends RoleMenuClient {
-  menu: Menu
-  role: Role
+  menuIds: string[]
 }
 
 export enum RoleStatus {
@@ -34,10 +28,16 @@ export type UpdateRoleDto = Pick<
   'id' | 'name' | 'code' | 'sort' | 'status' | 'description'
 >
 
+export type UpdateRoleMenusIdDto = {
+  menuIds: string[]
+}
+
 export type SearchRoleDto = Partial<Pick<Role, 'name' | 'code' | 'status'>> & {
   current: number
   pageSize: number
 }
+
+export type CreateRoleMenuDto = Pick<RoleMenu, 'menuId' | 'roleId'>
 
 /**
  * 角色状态配置

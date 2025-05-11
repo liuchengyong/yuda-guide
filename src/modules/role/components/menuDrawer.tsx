@@ -61,65 +61,42 @@ export const MenuDrawerEdit: React.FC<MenuDrawerEditProps> = (props) => {
         })
         setTreeData(datas)
       })
+      request
+        .get<null, Partial<Role>>(`/api/role/${currentRecord.id}`)
+        .then((response) => {
+          if (response.data) {
+            formRef.current?.setFieldsValue(response.data)
+          }
+        })
     }
   }, [open, currentRecord])
-  // 处理创建角色
-  const handleCreate = async (values: Partial<Role>) => {
-    try {
-      const response = await request.post<Partial<Role>, Role>(
-        '/api/role',
-        values,
-      )
-      if (response.code === 0) {
-        notification.success({
-          message: '创建角色成功',
-        })
-        actionRef.current?.reload()
-        return true
-      } else {
-        notification.error({
-          message: response.message || '创建角色失败',
-        })
-        return false
-      }
-    } catch (error) {
-      console.error('创建角色失败:', error)
-      return false
-    }
-  }
-
-  // 处理更新角色
-  const handleUpdate = async (values: Partial<Role>) => {
-    try {
-      const response = await request.put<Partial<Role>, Role>(
-        `/api/role/${currentRecord?.id}`,
-        values,
-      )
-
-      if (response.code === 0) {
-        notification.success({
-          message: '更新角色成功',
-        })
-        actionRef.current?.reload()
-        return true
-      } else {
-        notification.error({
-          message: response.message || '更新角色失败',
-        })
-        return false
-      }
-    } catch (error) {
-      console.error('更新角色失败:', error)
-      return false
-    }
-  }
 
   // 处理角色表单提交
   const handleFinish = async (values: Partial<Role>) => {
+    console.log(values)
     if (currentRecord) {
-      return handleUpdate(values)
-    } else {
-      return handleCreate(values)
+      try {
+        const response = await request.put<Partial<Role>, Role>(
+          `/api/role/${currentRecord?.id}/menu`,
+          values,
+        )
+
+        if (response.code === 0) {
+          notification.success({
+            message: '更新角色成功',
+          })
+          actionRef.current?.reload()
+          return true
+        } else {
+          notification.error({
+            message: response.message || '更新角色失败',
+          })
+          return false
+        }
+      } catch (error) {
+        console.error('更新角色失败:', error)
+        return false
+      }
     }
   }
 
