@@ -1,45 +1,32 @@
 'use client'
+import { UserOutlined } from '@ant-design/icons'
+import { ProFormInstance } from '@ant-design/pro-form'
 import { PageContainer } from '@ant-design/pro-layout'
 import ProTable, { ActionType, ProColumns } from '@ant-design/pro-table'
-import {
-  DrawerForm,
-  ProFormDigit,
-  ProFormInstance,
-  ProFormRadio,
-  ProFormText,
-  ProFormTextArea,
-} from '@ant-design/pro-form'
-import { App, Avatar, Button, message, Space, Tag } from 'antd'
-import { UserOutlined } from '@ant-design/icons'
-import React, { useRef, useState } from 'react'
+import { App, Avatar, Button, Space, Tag } from 'antd'
+import { useRef, useState } from 'react'
+import { STATUS_CONFIG } from '../common/base.type'
 import { request } from '../http/request'
-import {
-  CreateUserDto,
-  GetUserDto,
-  UpdateUserDto,
-  User,
-  UserStatus,
-} from './user.model'
-import { USER_STATUS_CONFIG } from './user.constant'
-import { UserRoleDrawer } from './user.role'
+import { DrawerEdit } from './components/drawer'
+import { SearchUserDto, UserVo } from './user.type'
 
 export function UsersPage() {
   const { modal, notification } = App.useApp()
-  const formRef = useRef<ProFormInstance<Partial<User>>>(null)
-  const [currentRecord, setCurrentRecord] = useState<User | null>(null)
+  const formRef = useRef<ProFormInstance<Partial<UserVo>>>(null)
+  const [currentRecord, setCurrentRecord] = useState<UserVo | null>(null)
   const [openModal, setOpenModal] = useState(false)
   const [openRoleDrawer, setOpenRoleDrawer] = useState(false)
-  const [roleUser, setRoleUser] = useState<User | null>(null)
+  const [roleUser, setRoleUser] = useState<UserVo | null>(null)
   const actionRef = useRef<ActionType>(null)
 
-  const columns: ProColumns<User>[] = [
+  const columns: ProColumns<UserVo>[] = [
     {
       title: 'ID',
       dataIndex: 'id',
       search: false,
     },
     {
-      title: '用户名',
+      title: '账号',
       dataIndex: 'account',
     },
     {
@@ -59,10 +46,10 @@ export function UsersPage() {
       dataIndex: 'status',
       valueType: 'select',
       fieldProps: {
-        options: USER_STATUS_CONFIG,
+        options: STATUS_CONFIG,
       },
       render: (_, record) => {
-        const config = USER_STATUS_CONFIG.find(
+        const config = STATUS_CONFIG.find(
           (option) => option.value === record.status,
         )
         return <Tag color={config?.color}>{config?.label}</Tag>
@@ -100,13 +87,6 @@ export function UsersPage() {
             <Button
               type="link"
               size="small"
-              onClick={() => handleRoles(record)}
-            >
-              角色
-            </Button>
-            <Button
-              type="link"
-              size="small"
               onClick={() => handleResetPassword(record)}
             >
               重置密码
@@ -124,79 +104,10 @@ export function UsersPage() {
       },
     },
   ]
-
-  // 处理创建用户
-  const handleCreate = async (values: CreateUserDto) => {
-    try {
-      const response = await request.post<CreateUserDto, User>(
-        '/api/users',
-        values,
-      )
-      if (response.code === 0) {
-        notification.success({
-          message: '创建用户成功',
-        })
-        actionRef.current?.reload()
-        return true
-      } else {
-        notification.error({
-          message: response.message || '创建用户失败',
-        })
-        return false
-      }
-    } catch (error) {
-      console.error('创建用户失败:', error)
-      return false
-    }
-  }
-
-  // 处理更新用户
-  const handleUpdate = async (values: UpdateUserDto) => {
-    try {
-      if (!currentRecord) {
-        notification.error({
-          message: '未找到要编辑的用户记录',
-        })
-        return false
-      }
-
-      const response = await request.put<UpdateUserDto, User>(
-        `/api/users/${currentRecord.id}`,
-        values,
-      )
-
-      if (response.code === 0) {
-        notification.success({
-          message: '更新用户成功',
-        })
-        actionRef.current?.reload()
-        return true
-      } else {
-        notification.error({
-          message: response.message || '更新用户失败',
-        })
-        return false
-      }
-    } catch (error) {
-      console.error('更新用户失败:', error)
-      return false
-    }
-  }
-
-  // 处理用户表单提交
-  const handleFinish = async (values: Partial<User>) => {
-    if (currentRecord) {
-      return handleUpdate(values as UpdateUserDto)
-    } else {
-      return handleCreate(values as CreateUserDto)
-    }
-  }
-
-  // 处理删除用户
-  const handleDelete = async (record: User) => {
+  const handleDelete = async (record: UserVo) => {
     modal.confirm({
       title: '确认删除',
-      content: `确定要删除用户 "${record.username}" 吗？`,
+      content: `确定要删除用户 "${record.account}" 吗？`,
       onOk: async () => {
         try {
           const response = await request.request<any, any>({
@@ -224,17 +135,10 @@ export function UsersPage() {
     })
   }
 
-  // 处理角色分配
-  const handleRoles = (record: User) => {
-    setRoleUser(record)
-    setOpenRoleDrawer(true)
-  }
-
-  // 处理重置密码
-  const handleResetPassword = (record: User) => {
+  const handleResetPassword = (record: UserVo) => {
     modal.confirm({
       title: '重置密码',
-      content: `确定要重置用户 "${record.username}" 的密码吗？`,
+      content: `确定要重置用户 "${record.account}" 的密码吗？`,
       onOk: async () => {
         try {
           // 这里可以调用重置密码的接口
@@ -253,10 +157,10 @@ export function UsersPage() {
   }
 
   const tableRequest = async (params: any, sort: any, filter: any) => {
-    const response = await request.get<GetUserDto, User>('/api/users', {
-      ...params,
-      page: params.current || 1,
-    })
+    const response = await request.get<SearchUserDto, UserVo>(
+      '/api/user/list',
+      params,
+    )
     return {
       data: response.datas || [],
       success: response.code === 0,
@@ -266,7 +170,7 @@ export function UsersPage() {
 
   return (
     <PageContainer>
-      <ProTable<User>
+      <ProTable<UserVo>
         rowKey="id"
         actionRef={actionRef}
         columns={columns}
@@ -288,70 +192,17 @@ export function UsersPage() {
           </Button>,
         ]}
       />
-      <DrawerForm<Partial<User>>
-        title={currentRecord ? '编辑用户' : '创建用户'}
+      <DrawerEdit
+        currentRecord={currentRecord}
         open={openModal}
-        width={500}
+        actionRef={actionRef}
         onOpenChange={(visible) => {
           setOpenModal(visible)
           if (!visible) {
             setCurrentRecord(null)
           }
-          if (visible && currentRecord) {
-            // 编辑时不显示密码字段
-            const { password, ...userWithoutPassword } = currentRecord
-            formRef.current?.setFieldsValue(userWithoutPassword)
-          }
         }}
-        formRef={formRef}
-        autoFocusFirstInput
-        drawerProps={{
-          destroyOnClose: true,
-        }}
-        onFinish={handleFinish}
-      >
-        <ProFormText
-          name="account"
-          label="账号"
-          placeholder="请输入账号"
-          rules={[{ required: true, message: '请输入账号' }]}
-        />
-
-        {currentRecord?.id ? null : (
-          <ProFormText.Password
-            name="password"
-            label="密码"
-            placeholder="请输入密码"
-            rules={[{ required: true, message: '请输入密码' }]}
-          />
-        )}
-
-        <ProFormText
-          name="email"
-          label="邮箱"
-          placeholder="请输入邮箱"
-          rules={[
-            {
-              type: 'email',
-              message: '请输入有效的邮箱地址',
-            },
-          ]}
-        />
-
-        <ProFormText
-          name="avatar"
-          label="头像URL"
-          placeholder="请输入头像URL"
-        />
-
-        <ProFormRadio.Group
-          name="status"
-          label="状态"
-          initialValue={UserStatus.Enabled}
-          options={USER_STATUS_CONFIG}
-          rules={[{ required: true, message: '请选择状态' }]}
-        />
-      </DrawerForm>
+      ></DrawerEdit>
     </PageContainer>
   )
 }

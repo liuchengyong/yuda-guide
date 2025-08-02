@@ -1,14 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
+import Icon from '@/components/Icon'
+import { buildTree } from '@/lib/utils'
+import { request } from '@/modules/http/request'
+import { Menu } from '@/modules/menu/menu.type'
 import { MenuDataItem } from '@ant-design/pro-layout'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Menu, MenuTreeVo } from '@/modules/menu/menu.model'
-import { request } from '@/modules/http/request'
-import { buildTree } from '@/lib/utils'
-import Icon from '@/components/Icon'
+import React, { useState } from 'react'
 
 const DynamicProLayout = dynamic(
   () => import('@ant-design/pro-layout').then((mod) => mod.ProLayout),
@@ -19,7 +19,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname() // 获取当前路径
   const router = useRouter() // 用于路由跳转
-  console.log(pathname)
   const menuRequest = async () => {
     const response = await request.get<{}, Menu>('/api/menu/list')
     const treeSelectDatas = buildTree<Menu, MenuDataItem>(
@@ -44,7 +43,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <DynamicProLayout
-      title="yuda"
+      title="yuda admin"
       logo="/logo.webp"
       layout="mix"
       location={{

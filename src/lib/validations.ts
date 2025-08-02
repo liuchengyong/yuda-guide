@@ -18,7 +18,7 @@ export interface ValidationResult {
  */
 export function validateSchema<T>(
   schema: z.ZodType<T>,
-  data: unknown,
+  data: T,
 ): ValidationResult {
   try {
     schema.parse(data)

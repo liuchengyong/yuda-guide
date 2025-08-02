@@ -7,7 +7,7 @@ export type ResponseData<T> = {
   data?: T
   datas?: T[]
   total?: number
-  page?: number
+  current?: number
   pageSize?: number
 }
 
@@ -47,4 +47,9 @@ export enum ResponseCode {
 
   // 权限相关
   PERMISSION_PARAM_ERROR = 10002, // 参数异常
+}
+
+export type PagenationParam = {
+  current: number
+  pageSize: number
 }
