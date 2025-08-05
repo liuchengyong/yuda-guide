@@ -56,7 +56,7 @@ export class RoleService {
         skip: (searchDto.current - 1) * searchDto.pageSize,
         take: searchDto.pageSize,
       })
-      return ResponseUtil.successList<Role>(
+      return ResponseUtil.successList<Partial<Role>>(
         datas,
         total,
         searchDto.current,

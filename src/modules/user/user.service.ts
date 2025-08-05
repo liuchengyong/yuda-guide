@@ -5,9 +5,16 @@ import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { ResponseCode } from '../http/http.type'
 import {
+  CreateRoleMenuDto,
+  Role,
+  UpdateRoleMenusIdDto,
+} from '../role/role.type'
+import {
   CreateUserDto,
   CreateUserSchema,
   SearchUserDto,
+  UpdateUserDto,
+  UserBo,
   UserUpdateSchema,
   UserVo,
 } from './user.type'
